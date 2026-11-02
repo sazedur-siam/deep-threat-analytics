@@ -78,6 +78,7 @@ export const MANIFEST_SELECTOR: vscode.DocumentSelector = [
   { scheme: 'file', pattern: '**/package.json' },
   { scheme: 'file', pattern: '**/pyproject.toml' },
   { scheme: 'file', pattern: '**/requirements*.txt' },
+  { scheme: 'file', pattern: '**/go.mod' },
 ];
 
 export function registerHover(presenter: DiagnosticsPresenter): vscode.Disposable {

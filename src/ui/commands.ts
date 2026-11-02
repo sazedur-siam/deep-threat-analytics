@@ -124,7 +124,7 @@ export function registerCommands(
         .filter((u) => ADAPTERS.some((a) => a.matches(u.fsPath)));
       if (!targets.length) {
         void vscode.window.showInformationMessage(
-          'DepThreat: open or select a package.json, pyproject.toml or requirements*.txt file to scan.',
+          'DepThreat: open or select a package.json, pyproject.toml, requirements*.txt or go.mod file to scan.',
         );
         return undefined;
       }

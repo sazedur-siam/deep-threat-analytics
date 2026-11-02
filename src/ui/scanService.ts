@@ -1,6 +1,7 @@
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import type { EcosystemAdapter } from '../adapters/adapter';
+import { goAdapter } from '../adapters/golang';
 import { npmAdapter } from '../adapters/npm';
 import { pythonAdapter } from '../adapters/python';
 import {
@@ -14,7 +15,7 @@ import { ScanCache } from '../core/cache';
 import { scanManifests, type OnlineCheck, type ScanResult } from '../core/engine';
 import { compileRule, loadRules } from '../rules/loader';
 
-export const ADAPTERS: readonly EcosystemAdapter[] = [npmAdapter, pythonAdapter];
+export const ADAPTERS: readonly EcosystemAdapter[] = [npmAdapter, pythonAdapter, goAdapter];
 
 /** Builds the online checks enabled in settings (filled in by the OSV/reputation layer). */
 export type OnlineFactory = (
