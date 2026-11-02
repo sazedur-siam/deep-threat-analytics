@@ -1,4 +1,5 @@
 import { findNodeAtLocation, parseTree } from 'jsonc-parser';
+import { existsSync } from 'node:fs';
 import { readFile as fsReadFile } from 'node:fs/promises';
 import * as path from 'node:path';
 import { makeFindingId, trimEvidence } from '../core/findings';
@@ -181,7 +182,7 @@ export async function scanInstallHooks(
       continue;
     }
     if (isRootManifest) {
-      const gyp = files.includes(path.join(dep.installPath as string, 'binding.gyp'));
+      const gyp = existsSync(path.join(dep.installPath as string, 'binding.gyp'));
       out.push(...scanNpmManifest(ctx, file, text, gyp));
     } else if (base === 'setup.py') out.push(...scanSetupPy(ctx, file, text));
     else out.push(...scanPth(ctx, file, text));
