@@ -9,7 +9,7 @@ Deep Threat Analytics is a Visual Studio Code extension that reads the source co
 
 Its rules, allowlists, severities and policies are all yours to customize.
 
-> **Status: early development.** The extension is not yet on the Visual Studio Marketplace. The features below describe the planned 0.1.0 pre-release. See [Roadmap](#roadmap) for what is finished.
+> **Pre-release.** Detection is pattern-based and tuned to avoid noise, but it can still flag legitimate packages. Use the Quick Fixes to ignore or allowlist them, and please [report false positives](https://github.com/sazedur-siam/deep-threat-analytics/issues).
 
 ## Why another dependency scanner?
 
@@ -23,32 +23,34 @@ Deep Threat Analytics looks at the code itself, entirely on your machine. When y
 
 ## What it detects
 
-| Category      | Examples                                                                                                       |
-| ------------- | -------------------------------------------------------------------------------------------------------------- |
-| Exfiltration  | Reading `process.env` / `os.environ` or secret files **and** sending data over the network                     |
-| Secrets & FS  | Access to `~/.ssh`, `~/.aws/credentials`, `~/.npmrc`, `.env`, browser cookie stores, the keychain              |
-| Exec          | `child_process.exec`, `subprocess` with `shell=True`, reverse-shell patterns                                   |
-| Dynamic code  | `eval` / `new Function` / `exec` on non-literal input, `marshal.loads`, `pickle.loads`                         |
-| Obfuscation   | High-entropy base64/hex payloads that get decoded and executed, javascript-obfuscator signatures               |
-| Install hooks | npm `preinstall` / `install` / `postinstall` scripts, code in `setup.py`, executable `.pth` files              |
-| Network       | Webhook and paste endpoints (Discord, Telegram, pastebin), raw sockets, DNS exfiltration, raw IPs              |
-| Persistence   | Writes to shell profiles, crontab, LaunchAgents, systemd units, Windows Run keys                               |
-| Crypto mining | Mining pool URLs, miner binaries, crypto-wallet file access                                                    |
-| Reputation    | Typosquatted names (offline); optional checks for brand-new, deprecated or yanked packages, maintainer changes |
-| Vulnerability | Known CVEs and malicious-package advisories from [OSV.dev](https://osv.dev) (opt-in)                           |
+| Category      | Examples                                                                                                  |
+| ------------- | --------------------------------------------------------------------------------------------------------- |
+| Exfiltration  | Reading `process.env` / `os.environ` or secret files **and** sending data over the network                |
+| Secrets & FS  | Access to `~/.ssh`, `~/.aws/credentials`, `~/.npmrc`, `.env`, browser cookie stores, the keychain         |
+| Exec          | `child_process.exec`, `subprocess` with `shell=True`, reverse-shell patterns                              |
+| Dynamic code  | `eval` / `new Function` / `exec` on non-literal input, decode-and-execute, `marshal.loads`, `vm` contexts |
+| Obfuscation   | High-entropy base64/hex payloads that get decoded and executed, javascript-obfuscator signatures          |
+| Install hooks | npm `preinstall` / `install` / `postinstall` scripts, code in `setup.py`, executable `.pth` files         |
+| Network       | Webhook, paste and tunneling endpoints, DNS exfiltration, hardcoded IP addresses, public-IP lookups       |
+| Persistence   | Writes to shell profiles, crontab, LaunchAgents, systemd units, Windows Run keys                          |
+| Crypto mining | Mining pool URLs, miner binaries, crypto-wallet file access                                               |
+| Reputation    | Typosquats (offline); optional: new, deprecated, yanked or unregistered packages, maintainer changes      |
+| Vulnerability | Known CVEs and malicious-package advisories from [OSV.dev](https://osv.dev) (opt-in)                      |
 
-Correlation reduces noise. A package that only makes HTTP requests is reported as _info_. A package that reads your credentials **and** posts them to a webhook is reported as _critical_.
+Correlation keeps the noise down. A capability on its own, such as starting a child process, is _low_. A package that reads your credentials **and** posts them to a webhook is _critical_. Comment lines are ignored, so documentation and commented-out examples don't trigger rules.
 
 ## Supported ecosystems
 
-| Ecosystem                             | Manifests                                                         | Status  |
-| ------------------------------------- | ----------------------------------------------------------------- | ------- |
-| npm / pnpm / Yarn (classic and Berry) | `package.json` + lockfile                                         | Phase 1 |
-| Python (pip, Poetry, uv)              | `requirements*.txt`, `pyproject.toml`, `poetry.lock`, `uv.lock`   | Phase 1 |
-| Go                                    | `go.mod`                                                          | Phase 2 |
-| Rust (Cargo)                          | `Cargo.toml`                                                      | Phase 2 |
-| Java (Maven / Gradle)                 | `pom.xml`, `build.gradle(.kts)` (scans `-sources.jar` if present) | Phase 2 |
-| PHP (Composer)                        | `composer.json`                                                   | Phase 2 |
+| Ecosystem                             | Manifests                                                             | Status    |
+| ------------------------------------- | --------------------------------------------------------------------- | --------- |
+| npm / pnpm / Yarn (classic and Berry) | `package.json` + `package-lock.json` / `pnpm-lock.yaml` / `yarn.lock` | Supported |
+| Python (pip, Poetry, uv)              | `requirements*.txt`, `pyproject.toml`, `poetry.lock`, `uv.lock`       | Supported |
+| Go                                    | `go.mod`                                                              | Planned   |
+| Rust (Cargo)                          | `Cargo.toml`                                                          | Planned   |
+| Java (Maven / Gradle)                 | `pom.xml`, `build.gradle(.kts)` (scans `-sources.jar` if present)     | Planned   |
+| PHP (Composer)                        | `composer.json`                                                       | Planned   |
+
+The extension scans what is **installed**: `node_modules` (including pnpm's symlinked store) and the project's virtual environment (`.venv`, `venv` or `env`). Install your dependencies before scanning. Dependencies that are not installed still get the optional OSV and registry checks.
 
 ## Usage
 
@@ -59,9 +61,29 @@ Scans run only when you ask for one, never automatically on open or save:
 
 Results appear in three places:
 
-- **Inline diagnostics** on each dependency in the manifest. Hover for a summary.
-- **Quick Fixes**: open the offending source line, ignore a rule for a package, allowlist a package, or bump to a fixed version.
-- **The Deep Threat Analytics sidebar**: Manifest › Package › Finding › exact line in the dependency's code. Policy violations are grouped separately.
+- **Inline diagnostics** on each direct dependency in the manifest. Findings in transitive dependencies are shown on the direct dependency that pulls them in. Hover for details.
+- **Quick Fixes** on a flagged dependency:
+  - Show its findings in the sidebar
+  - Open the offending line in the dependency's code
+  - Ignore a rule for that package
+  - Allowlist the package
+  - Update it to the version that fixes its known vulnerabilities (when OSV is enabled)
+- **The Deep Threat Analytics sidebar**: Manifest › Package › Finding. Click a finding to jump to the exact line. Right-click to ignore it or turn the rule off. Policy violations are grouped at the top.
+
+The status bar shows the result of the last scan and turns red when a policy fails.
+
+### Commands
+
+| Command                                    | What it does                                               |
+| ------------------------------------------ | ---------------------------------------------------------- |
+| `DepThreat: Scan Workspace`                | Scan every manifest in the workspace                       |
+| `DepThreat: Scan This Manifest`            | Scan the selected or open manifest                         |
+| `DepThreat: Export Findings (JSON)`        | Save the last scan's findings, violations and stats        |
+| `DepThreat: Create or Open Project Config` | Create `.depthreat/config.yaml` from a commented template  |
+| `DepThreat: Open Custom Rules`             | Create `.depthreat/rules/custom.yaml` with an example rule |
+| `DepThreat: Clear Scan Cache`              | Forget cached per-package results                          |
+
+Results are cached per package version and rule set, so rescans only re-read packages that changed.
 
 ## Privacy and data
 
@@ -69,6 +91,7 @@ Results appear in three places:
 - **Online lookups are off by default.** When you enable them:
   - `depthreat.online.osv.enabled` sends package **name, ecosystem and version** to `api.osv.dev`.
   - `depthreat.online.registryMetadata.enabled` sends package **names** to `registry.npmjs.org` / `pypi.org`.
+- **Typosquat checks run offline** against lists of popular package names bundled with the extension.
 - **No telemetry** is collected.
 
 ### Workspace Trust
@@ -77,6 +100,9 @@ In an untrusted workspace the extension runs in restricted mode:
 
 - It does not run the Python interpreter to locate `site-packages`, and only looks for a `.venv` on disk.
 - It ignores workspace-level values for rule paths, the interpreter path, and online lookups. Only your user settings apply.
+- It ignores the repository's own `.depthreat/config.yaml` and `.depthreat/rules/`, so an untrusted repository cannot allowlist its own dependencies or switch rules off.
+
+In a trusted workspace, the interpreter runs in isolated mode (`python -I`) from a neutral directory, so files in your project cannot run during discovery.
 
 ## Configuration
 
@@ -104,10 +130,11 @@ Commit this file to share allowlists, ignores and policies with your team:
 ```yaml
 allowlist:
   packages: ['esbuild', '@types/*', 'pypi:requests']
-  rules: ['obfuscation/minified-eval']
+  rules: ['network/ip-lookup']
 
 ignore:
   - { package: 'lodash', rule: 'obfuscation/*', reason: 'minified dist' }
+  - { package: 'left-pad', version: '1.x' } # every rule, only for 1.x versions
   - { finding: 'a1b2c3d4e5f60718', reason: 'reviewed by security team' }
 
 severityOverrides:
@@ -122,9 +149,13 @@ policies:
       action: error,
     }
   - { name: no-critical, deny: { minSeverity: critical }, action: error }
+  - { name: known-vulns, deny: { source: osv, minSeverity: high }, action: warn }
 ```
 
-Policy violations are shown as errors, collected in their own sidebar group, and turn the status bar red.
+- **Package patterns** are globs, and `*` also matches `/`, so `*crypto*` covers `@scope/crypto-lib`. Prefix them with `npm:` or `pypi:` to limit them to one ecosystem.
+- **Policy `deny`** matches on any combination of `category`, `rule`, `source` (`code`, `install-hook`, `osv`, `reputation`) and `minSeverity`. All the criteria you list must match.
+- **Actions:** `action: error` violations always show as errors and turn the status bar red. `action: warn` violations show at least as warnings.
+- **Invalid entries** are reported in the **Deep Threat Analytics** output channel with their path, such as `ignore[2].package`. The rest of the file still applies.
 
 ### Custom rules: `.depthreat/rules/*.yaml`
 
@@ -140,15 +171,22 @@ Custom rules use the same format as the built-in ones. A rule with the same `id`
     any:
       - regex: 'https?://[a-z0-9.-]*\.example\.invalid'
     not:
-      - regex: '^\s*(//|#)'
+      - regex: 'localhost'
     scope: line # line | file | package
   message: '{package} contacts an unapproved host in {file}'
 ```
 
-- `all`: every pattern must match within the `scope`.
-- `any`: at least one pattern must match.
-- `not`: vetoes the match.
-- `scope: file` or `scope: package` lets you correlate signals, for example "reads env vars" **and** "makes HTTP requests" in the same file.
+- **`all`**: every pattern must match within the `scope`.
+- **`any`**: at least one pattern must match.
+- **`not`**: any match vetoes the rule within the `scope`.
+- **`scope`**: `file` or `package` lets you correlate signals that appear on different lines. For example, "reads env vars" **and** "makes HTTP requests" in the same file.
+- **Patterns** are JavaScript regular expressions applied line by line. Comment-only lines are skipped.
+- **`flags`** can add `i`, `s` or `u`.
+- **`files`** restricts a rule to file names (globs), such as `['setup.py']`.
+- **`message`** can use `{package}`, `{version}` and `{file}`.
+- **Categories:** `network`, `exfiltration`, `exec`, `secrets-fs`, `env-access`, `obfuscation`, `install-hook`, `crypto-mining`, `dynamic-code`, `persistence`, `vulnerability`, `reputation`.
+
+To change a built-in rule, copy it from [`rules/builtin`](https://github.com/sazedur-siam/deep-threat-analytics/tree/main/rules/builtin) into your rules folder under the same `id` and edit it. To switch a built-in rule off, set `enabled: false`.
 
 ### Inline ignores
 
@@ -163,20 +201,23 @@ otherpkg>=2     # depthreat-ignore[exec/python-shell, obfuscation/*]
 "depthreat": { "ignore": { "some-package": ["network/*"], "other-package": "all" } }
 ```
 
+## Known limitations
+
+- **Detection is pattern-based, not a full program analysis.** Code that builds names at runtime can evade rules, and some legitimate packages can match. Correlated rules and severities are designed to keep false positives low.
+- **Patterns match line by line.** `scope: file` and `scope: package` correlate across lines, but a single pattern cannot span lines.
+- **Unsupported install layouts:** Yarn Plug'n'Play (no `node_modules`) and Python packages installed outside a virtual environment are not scanned unless the interpreter can be queried (trusted workspaces only).
+- **Ecosystems:** Go, Rust, Java and PHP are planned.
+
 ## Roadmap
 
-- [x] Project scaffold, test tooling (unit + VS Code integration), CI
-- [x] Core types, rule schema and loader with user overrides
-- [x] Scan cache and concurrency helpers
-- [ ] npm / pnpm / Yarn adapter
-- [ ] Python adapter
-- [ ] Code scanner, obfuscation and install-hook detection, built-in rule packs
-- [ ] Project config, ignores, allowlists and policy gates
-- [ ] Scan engine
-- [ ] Diagnostics, hovers, Quick Fixes, sidebar, status bar
-- [ ] OSV.dev and reputation checks
+- [x] npm / pnpm / Yarn and Python adapters
+- [x] Code scanner, obfuscation and install-hook detection, built-in rule packs
+- [x] Project config, ignores, allowlists and policy gates
+- [x] Diagnostics, hovers, Quick Fixes, sidebar, status bar
+- [x] OSV.dev vulnerabilities, typosquats and registry reputation
 - [ ] 0.1.0 pre-release on the Visual Studio Marketplace
-- [ ] Phase 2: Go, Rust, Java, PHP
+- [ ] Go, Rust, Java and PHP
+- [ ] SARIF export
 
 ## Development
 
@@ -195,11 +236,12 @@ Press **F5** in VS Code to launch an Extension Development Host.
 Project layout:
 
 ```text
-src/core/       engine, shared types, cache (no VS Code API, fully unit-tested)
+src/core/       engine, shared types, cache (no VS Code API)
 src/adapters/   one adapter per ecosystem (manifest parsing, lockfiles, installed files)
 src/scanners/   code patterns, obfuscation, install hooks, OSV, reputation
 src/rules/      rule schema and loader
 rules/builtin/  built-in rule packs (YAML)
+data/           bundled popular package names for typosquat checks
 src/config/     settings and .depthreat/config.yaml
 src/policy/     ignores, allowlists, policy gates
 src/ui/         diagnostics, hovers, Quick Fixes, tree view, status bar
