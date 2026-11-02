@@ -47,7 +47,7 @@
     any:
       - regex: 'api\.ipify\.org|ifconfig\.me|ipinfo\.io|icanhazip\.com|checkip\.amazonaws\.com'
     scope: line
-  message: '{package} looks up the machine''s public IP address in {file}'
+  message: "{package} looks up the machine's public IP address in {file}"
 
 - id: network/dns-exfiltration
   title: Encodes data into DNS lookups
