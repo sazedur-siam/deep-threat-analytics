@@ -46,7 +46,10 @@ async function listRuleFiles(dir: string): Promise<string[]> {
 }
 
 /** Parse and validate one rule file. Invalid rules are reported and skipped; valid ones kept. */
-export function parseRuleFile(file: string, text: string): { rules: Rule[]; errors: RuleLoadError[] } {
+export function parseRuleFile(
+  file: string,
+  text: string,
+): { rules: Rule[]; errors: RuleLoadError[] } {
   let doc: unknown;
   try {
     doc = parseYaml(text);
@@ -55,7 +58,10 @@ export function parseRuleFile(file: string, text: string): { rules: Rule[]; erro
   }
   if (doc === null || doc === undefined) return { rules: [], errors: [] };
   if (!Array.isArray(doc)) {
-    return { rules: [], errors: [{ file, message: 'rule file must contain a YAML list of rules' }] };
+    return {
+      rules: [],
+      errors: [{ file, message: 'rule file must contain a YAML list of rules' }],
+    };
   }
   const rules: Rule[] = [];
   const errors: RuleLoadError[] = [];

@@ -28,7 +28,11 @@ export interface EcosystemAdapter {
    * on-disk install (node_modules, site-packages, ...). Includes transitive deps when
    * ctx.scanTransitive is set. Deps that are not installed are returned without installPath.
    */
-  resolve(manifestPath: string, declared: DeclaredDep[], ctx: AdapterContext): Promise<ResolvedDep[]>;
+  resolve(
+    manifestPath: string,
+    declared: DeclaredDep[],
+    ctx: AdapterContext,
+  ): Promise<ResolvedDep[]>;
 
   /** Absolute paths of the dependency's source files worth scanning, honoring limits. */
   listSourceFiles(dep: ResolvedDep, limits: ScanLimits): Promise<string[]>;

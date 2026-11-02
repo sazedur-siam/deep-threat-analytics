@@ -41,7 +41,10 @@ export const ruleSchema = z.object({
   /** "<category-or-group>/<name>", lowercase kebab-case. */
   id: z
     .string()
-    .regex(/^[a-z0-9-]+\/[a-z0-9-]+$/, 'id must look like "group/rule-name" (lowercase, kebab-case)'),
+    .regex(
+      /^[a-z0-9-]+\/[a-z0-9-]+$/,
+      'id must look like "group/rule-name" (lowercase, kebab-case)',
+    ),
   title: z.string().min(1),
   category: z.enum(CATEGORIES),
   severity: z.enum(SEVERITIES),
