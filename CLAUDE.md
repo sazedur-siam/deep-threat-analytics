@@ -1,6 +1,6 @@
 # Deep Threat Analytics
 
-VS Code extension that scans the **source code of installed dependencies** for behavior that can compromise the system or leak data (network exfiltration, secret/env reads, shell spawning, eval/obfuscation, install hooks), plus opt-in CVE (OSV.dev) and package-reputation checks. Published to the VS Code Marketplace as `sazedur-siam.deep-threat-analytics`.
+VS Code extension that scans the **source code of installed dependencies** for behavior that can compromise the system or leak data (network exfiltration, secret/env reads, shell spawning, eval/obfuscation, install hooks), plus opt-in CVE (OSV.dev) and package-reputation checks. Published to the VS Code Marketplace as `MdSazedurRahman.deep-threat-analytics` (publisher ID `MdSazedurRahman`; the GitHub account and commit identity stay `sazedur-siam`).
 
 ## Commands
 
@@ -53,7 +53,7 @@ Full plan and stage table: `~/.claude/plans/i-want-to-make-ticklish-toucan.md`.
 
 ## Marketplace guidelines (must hold before every publish)
 
-- `publisher` in package.json must match the Marketplace publisher ID (`sazedur-siam`, created at https://marketplace.visualstudio.com/manage). Publish with `vsce login sazedur-siam` + `vsce publish` using an Azure DevOps PAT (Marketplace › Manage scope). Never commit the PAT; CI uses a `VSCE_PAT` secret.
+- `publisher` in package.json must match the Marketplace publisher ID (`MdSazedurRahman`, created at https://marketplace.visualstudio.com/manage). Publish with `vsce login MdSazedurRahman` + `vsce publish` using an Azure DevOps PAT (Marketplace › Manage scope). Never commit the PAT; CI uses a `VSCE_PAT` secret.
 - `icon`: PNG, at least 128×128 (SVG is not allowed for the extension icon).
 - README/CHANGELOG images must use `https` URLs; SVG images are only allowed from trusted badge providers.
 - Required metadata: `displayName`, `description`, `repository`, `license` + `LICENSE` file, `engines.vscode`, valid `categories`, ≤30 `keywords`.
