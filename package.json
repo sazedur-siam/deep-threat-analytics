@@ -58,7 +58,8 @@
     "compile-tests": "tsc -p .",
     "pretest:integration": "npm run build && npm run compile-tests",
     "test:integration": "vscode-test",
-    "check": "npm run typecheck && npm run lint && npm run format:check && npm run test:coverage"
+    "check": "npm run typecheck && npm run lint && npm run format:check && npm run test:coverage",
+    "package": "vsce package"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -68,6 +69,7 @@
     "@vitest/coverage-v8": "^5.0.5",
     "@vscode/test-cli": "^0.0.15",
     "@vscode/test-electron": "^3.1.0",
+    "@vscode/vsce": "^4.1.0",
     "esbuild": "^0.28.2",
     "eslint": "^10.14.0",
     "eslint-config-prettier": "^10.1.8",
