@@ -1,0 +1,46 @@
+version = 3
+
+[[package]]
+name = "app"
+version = "0.1.0"
+dependencies = ["clean-math", "evil-telemetry", "local-crate", "missing-crate", "real-name", "shady-build", "table-dep", "test-helper"]
+
+[[package]]
+name = "clean-math"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "evil-telemetry"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = ["clean-math 0.3.1", "local-crate"]
+
+[[package]]
+name = "local-crate"
+version = "0.1.0"
+
+[[package]]
+name = "missing-crate"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "real-name"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "shady-build"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "table-dep"
+version = "1.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "test-helper"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"

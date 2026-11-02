@@ -1,0 +1,20 @@
+[package]
+name = "app"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+evil-telemetry = "1.0"
+clean-math = { version = "0.3", features = ["std"] }
+renamed = { package = "real-name", version = "2" }
+local-crate = { path = "../local-crate" }
+missing-crate = "0.1" # depthreat-ignore[network/*]
+
+[dependencies.table-dep]
+version = "1.2"
+
+[build-dependencies]
+shady-build = "0.1"
+
+[dev-dependencies]
+test-helper = "1"
