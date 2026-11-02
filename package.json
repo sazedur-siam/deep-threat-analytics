@@ -47,11 +47,13 @@
   "scripts": {
     "build": "node esbuild.mjs",
     "watch": "node esbuild.mjs --watch",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "vscode:prepublish": "node esbuild.mjs --production"
   },
   "devDependencies": {
     "@types/node": "^20.19.43",
     "@types/vscode": "^1.90.0",
+    "esbuild": "^0.28.2",
     "typescript": "^7.0.2"
   }
 }
