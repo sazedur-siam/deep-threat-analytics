@@ -2,10 +2,29 @@
 
 All notable changes to this extension are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
-[Semantic Versioning](https://semver.org/).
+[Semantic Versioning](https://semver.org/). Odd minor versions are pre-releases.
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-02
+
+First pre-release.
+
 ### Added
 
-- Extension scaffold with the `DepThreat: Scan Workspace` command.
+- Local scanning of installed dependency source code for npm, pnpm, Yarn (node_modules layouts)
+  and Python (virtual environments, pip, Poetry, uv).
+- Built-in rules for exfiltration, credential and secret-file access, environment dumps, shell
+  execution, reverse shells, dynamic code, persistence, crypto mining and data-collection
+  endpoints, plus heuristics for obfuscated payloads.
+- Install-hook detection: npm lifecycle scripts, `setup.py` side effects and executable `.pth`
+  files.
+- Offline typosquat detection against bundled popular package lists.
+- Opt-in OSV.dev vulnerability lookups (with fixed versions) and npm/PyPI registry reputation
+  checks. Both are off by default.
+- Inline diagnostics on manifest dependency lines, hovers, Quick Fixes (open code, ignore rule,
+  allowlist package, update to fixed version), a findings sidebar and a status bar summary.
+- Project configuration in `.depthreat/config.yaml`: allowlists, ignores, severity overrides
+  and policy gates. Custom rules in `.depthreat/rules/*.yaml`. Inline ignores in manifests.
+- Per-package result cache, JSON export, and Workspace Trust support (repository config and rules
+  are ignored in untrusted workspaces).
