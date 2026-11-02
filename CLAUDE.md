@@ -19,7 +19,7 @@ F5 ("Run Extension") opens an Extension Development Host.
 ## Architecture
 
 - `src/core/` — engine, types, cache, concurrency. **Must not import `vscode`**, so it stays unit-testable.
-- `src/adapters/` — one `EcosystemAdapter` per ecosystem (npm, python; later go, cargo, maven, composer). New ecosystems plug in here without core changes.
+- `src/adapters/` — one `EcosystemAdapter` per ecosystem (npm, python, go, cargo, composer, maven). New ecosystems plug in here without core changes. Adapters only read files; they never run package managers or build tools.
 - `src/scanners/` — code pattern scanner, composite (correlated) rules, obfuscation, install hooks, OSV, reputation.
 - `src/rules/builtin/*.yaml` — built-in rules; users add `.depthreat/rules/*.yaml` in the same schema (validated with zod).
 - `src/config/`, `src/policy/` — VS Code settings (`depthreat.*`), `.depthreat/config.yaml` (allowlist, ignores, policies).
