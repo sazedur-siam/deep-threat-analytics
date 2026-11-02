@@ -47,6 +47,7 @@ Full plan and stage table: `~/.claude/plans/i-want-to-make-ticklish-toucan.md`.
 
 - TypeScript is pinned to `~6.0` because typescript-eslint doesn't support TS 7 yet.
 - TS 6 defaults `types` to `[]`; `tsconfig.json` lists `["node", "mocha"]` explicitly.
+- `module: nodenext` lets TypeScript accept ESM-only deps such as `smol-toml` (esbuild bundles them for runtime).
 - `@types/vscode` is pinned to `1.90.0` to match `engines.vscode: ^1.90.0`. Don't use newer APIs without bumping both.
 - Runtime deps are bundled by esbuild; `node_modules` is excluded from the VSIX via `.vscodeignore`.
 
