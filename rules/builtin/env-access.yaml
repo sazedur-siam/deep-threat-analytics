@@ -57,3 +57,15 @@
       - regex: '\benv::vars(_os)?\(\)'
     scope: line
   message: '{package} reads all environment variables in {file}'
+
+- id: env-access/php-environ
+  title: Dumps environment variables
+  category: env-access
+  severity: low
+  languages: [php]
+  match:
+    any:
+      - regex: '\bgetenv\(\s*\)'
+      - regex: '\b(json_encode|serialize|var_export|print_r)\(\s*\$_(ENV|SERVER)\b'
+    scope: line
+  message: '{package} reads all environment variables in {file}'

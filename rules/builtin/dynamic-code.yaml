@@ -105,3 +105,38 @@
       - regex: '\blibloading::Library::new\(|\bdlopen\('
     scope: line
   message: '{package} loads a native library at runtime in {file}'
+
+- id: dynamic-code/php-eval
+  title: Evaluates dynamically built code
+  category: dynamic-code
+  severity: medium
+  languages: [php]
+  match:
+    any:
+      - regex: '(^|[^>\w$:])(eval|assert)\s*\(\s*\$'
+      - regex: '\bcreate_function\s*\('
+      - regex: '\bpreg_replace\s*\(\s*[''"]/.*/[a-z]*e[a-z]*[''"]'
+    scope: line
+  message: '{package} evaluates code that is not a fixed string in {file}'
+
+- id: dynamic-code/php-decode-execute
+  title: Decodes and executes hidden code
+  category: dynamic-code
+  severity: critical
+  languages: [php]
+  match:
+    any:
+      - regex: '\b(eval|assert)\s*\(\s*(base64_decode|gzinflate|gzuncompress|gzdecode|str_rot13|hex2bin|convert_uudecode)\s*\('
+    scope: line
+  message: '{package} decodes data and executes it as code in {file}'
+
+- id: dynamic-code/php-request-exec
+  title: Executes code or commands from web requests
+  category: dynamic-code
+  severity: critical
+  languages: [php]
+  match:
+    any:
+      - regex: '\b(eval|assert|system|shell_exec|passthru|exec|popen|proc_open)\s*\(\s*\$_(GET|POST|REQUEST|COOKIE|SERVER)\b'
+    scope: line
+  message: '{package} passes request data straight into code or command execution (web shell) in {file}'

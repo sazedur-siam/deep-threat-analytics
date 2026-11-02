@@ -116,3 +116,14 @@
       - regex: 'Command::new\(\s*"(/bin/|/usr/bin/)?(sh|bash|zsh|cmd(\.exe)?|powershell(\.exe)?|pwsh)"'
     scope: line
   message: '{package} runs shell commands in {file}'
+
+- id: exec/php-shell
+  title: Runs shell commands
+  category: exec
+  severity: medium
+  languages: [php]
+  match:
+    any:
+      - regex: '(^|[^>\w$:])(shell_exec|system|passthru|popen|proc_open|pcntl_exec|exec)\s*\('
+    scope: line
+  message: '{package} runs shell commands in {file}'
