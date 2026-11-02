@@ -6,6 +6,12 @@ All notable changes to this extension are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Go support: `go.mod` parsing (including `replace` and `// indirect`), scanning of modules in
+  `vendor/` or the module cache, and Go rules for shell execution, environment exfiltration and
+  network calls from `init()` functions.
+
 ## [0.1.0] - 2026-11-02
 
 First pre-release.
