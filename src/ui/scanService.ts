@@ -4,6 +4,7 @@ import type { EcosystemAdapter } from '../adapters/adapter';
 import { goAdapter } from '../adapters/golang';
 import { npmAdapter } from '../adapters/npm';
 import { pythonAdapter } from '../adapters/python';
+import { rustAdapter } from '../adapters/rust';
 import {
   CONFIG_DIR,
   EMPTY_CONFIG,
@@ -15,7 +16,12 @@ import { ScanCache } from '../core/cache';
 import { scanManifests, type OnlineCheck, type ScanResult } from '../core/engine';
 import { compileRule, loadRules } from '../rules/loader';
 
-export const ADAPTERS: readonly EcosystemAdapter[] = [npmAdapter, pythonAdapter, goAdapter];
+export const ADAPTERS: readonly EcosystemAdapter[] = [
+  npmAdapter,
+  pythonAdapter,
+  goAdapter,
+  rustAdapter,
+];
 
 /** Builds the online checks enabled in settings (filled in by the OSV/reputation layer). */
 export type OnlineFactory = (

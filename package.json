@@ -26,7 +26,9 @@
     "supply chain",
     "malware",
     "vulnerability",
-    "go"
+    "go",
+    "rust",
+    "cargo"
   ],
   "main": "./dist/extension.js",
   "activationEvents": [],
@@ -133,21 +135,21 @@
       "explorer/context": [
         {
           "command": "depthreat.scanManifest",
-          "when": "resourceFilename == package.json || resourceFilename == pyproject.toml || resourceFilename =~ /^requirements.*\\.txt$/ || resourceFilename == go.mod",
+          "when": "resourceFilename == package.json || resourceFilename == pyproject.toml || resourceFilename == go.mod || resourceFilename == Cargo.toml || resourceFilename =~ /^requirements.*\\.txt$/",
           "group": "depthreat@1"
         }
       ],
       "editor/context": [
         {
           "command": "depthreat.scanManifest",
-          "when": "resourceFilename == package.json || resourceFilename == pyproject.toml || resourceFilename =~ /^requirements.*\\.txt$/ || resourceFilename == go.mod",
+          "when": "resourceFilename == package.json || resourceFilename == pyproject.toml || resourceFilename == go.mod || resourceFilename == Cargo.toml || resourceFilename =~ /^requirements.*\\.txt$/",
           "group": "depthreat@1"
         }
       ],
       "editor/title": [
         {
           "command": "depthreat.scanManifest",
-          "when": "resourceFilename == package.json || resourceFilename == pyproject.toml || resourceFilename =~ /^requirements.*\\.txt$/ || resourceFilename == go.mod",
+          "when": "resourceFilename == package.json || resourceFilename == pyproject.toml || resourceFilename == go.mod || resourceFilename == Cargo.toml || resourceFilename =~ /^requirements.*\\.txt$/",
           "group": "navigation@90"
         }
       ],
