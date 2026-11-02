@@ -5,7 +5,7 @@ import { compileRule, loadRules, type CompiledRule } from '../../../src/rules/lo
 import { scanPackageCode } from '../../../src/scanners/codeScanner';
 
 // Every snippet here is an inert string that is only pattern-matched, never executed.
-type Lang = 'js' | 'py';
+type Lang = 'js' | 'py' | 'go';
 interface Case {
   lang: Lang;
   pos: string[];
@@ -206,6 +206,41 @@ const CASES: Record<string, Case> = {
     pos: ["const pool = 'stratum+tcp://pool.example.invalid:3333';"],
     neg: ["const s = 'stratum';"],
   },
+  'exec/go-shell': {
+    lang: 'go',
+    pos: ['exec.Command("sh", "-c", cmd).Run()', 'exec.CommandContext(ctx, "/bin/bash", "-c", c)'],
+    neg: ['exec.Command("git", "status")'],
+  },
+  'exec/go-syscall-exec': {
+    lang: 'go',
+    pos: ['syscall.Exec(binary, args, env)'],
+    neg: ['syscall.Getpid()'],
+  },
+  'env-access/go-environ': {
+    lang: 'go',
+    pos: ['for _, kv := range os.Environ() {'],
+    neg: ['home := os.Getenv("HOME")'],
+  },
+  'exfiltration/go-env-to-network': {
+    lang: 'go',
+    pos: ['data := strings.Join(os.Environ(), ",")\nhttp.Post(url, "text/plain", body)'],
+    neg: ['data := os.Getenv("PATH")\nhttp.Post(url, "text/plain", body)'],
+  },
+  'exfiltration/go-homedir-read-and-send': {
+    lang: 'go',
+    pos: ['h, _ := os.UserHomeDir()\nb, _ := os.ReadFile(h + "/.config/x")\nhttp.Post(u, "", r)'],
+    neg: ['h, _ := os.UserHomeDir()\nb, _ := os.ReadFile(h + "/.config/x")'],
+  },
+  'network/go-init-network': {
+    lang: 'go',
+    pos: ['func init() {\n\tresp, _ := http.Get("https://x.example.invalid")\n}'],
+    neg: ['func init() {\n\tregister()\n}'],
+  },
+  'dynamic-code/go-plugin-load': {
+    lang: 'go',
+    pos: ['p, err := plugin.Open(path)'],
+    neg: ['p := plugins.Open'],
+  },
   'crypto-mining/miner': {
     lang: 'js',
     pos: ["spawn('./xmrig', args)"],
@@ -214,6 +249,12 @@ const CASES: Record<string, Case> = {
 };
 
 // Python-language rules that should also be checked against their Python spelling.
+const EXTRA_POSITIVES: Record<string, Array<[Lang, string]>> = {
+  'exfiltration/secret-file-to-network': [
+    ['go', 'b, _ := os.ReadFile(home + "/.ssh/id_rsa")\nhttp.Post(u, "", bytes.NewReader(b))'],
+  ],
+};
+
 const EXTRA_PY_POSITIVES: Record<string, string[]> = {
   'dynamic-code/decode-and-execute': [
     'exec(base64.b64decode(p))',
@@ -222,7 +263,7 @@ const EXTRA_PY_POSITIVES: Record<string, string[]> = {
   'secrets-fs/ssh-keys': ["open(os.path.expanduser('~/.ssh/id_ed25519'))"],
 };
 
-const LANGUAGE: Record<Lang, Language> = { js: 'javascript', py: 'python' };
+const LANGUAGE: Record<Lang, Language> = { js: 'javascript', py: 'python', go: 'go' };
 const dep: ResolvedDep = {
   ecosystem: 'npm',
   name: 'fixture-pkg',
@@ -269,6 +310,11 @@ describe('built-in rules', () => {
       for (const code of c.neg) {
         it(`ignores: ${code.split('\n').at(-1)}`, async () => {
           expect(await ruleIdsFor(c.lang, code)).not.toContain(id);
+        });
+      }
+      for (const [lang, code] of EXTRA_POSITIVES[id] ?? []) {
+        it(`matches ${lang}: ${code.split('\n').at(-1)}`, async () => {
+          expect(await ruleIdsFor(lang, code)).toContain(id);
         });
       }
       for (const code of EXTRA_PY_POSITIVES[id] ?? []) {
