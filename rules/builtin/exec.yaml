@@ -1,4 +1,16 @@
 # Process execution from inside a dependency.
+- id: exec/node-child-process
+  title: Starts child processes
+  category: exec
+  severity: low
+  languages: [javascript, typescript]
+  match:
+    all:
+      - regex: 'require\(\s*[''"`](node:)?child_process[''"`]\s*\)|from\s+[''"](node:)?child_process[''"]'
+      - regex: '\b(exec|execSync|spawn|spawnSync|execFile|execFileSync|fork)\s*\('
+    scope: file
+  message: '{package} starts child processes in {file}'
+
 - id: exec/node-child-process-shell
   title: Spawns a shell command
   category: exec
@@ -11,6 +23,18 @@
     scope: line
   message: '{package} runs shell commands in {file}'
 
+- id: exec/node-dynamic-command
+  title: Runs a shell command built at runtime
+  category: exec
+  severity: medium
+  languages: [javascript, typescript]
+  match:
+    any:
+      - regex: '\b(exec|execSync)\s*\(\s*[^''"`)\s][^)]*\+'
+      - regex: '\b(exec|execSync)\s*\(\s*`[^`]*\$\{'
+    scope: line
+  message: '{package} builds shell commands from variables in {file}'
+
 - id: exec/python-shell
   title: Spawns a shell command
   category: exec
@@ -22,3 +46,40 @@
       - regex: '\bsubprocess\.\w+\([^)]*shell\s*=\s*True'
     scope: line
   message: '{package} runs shell commands in {file}'
+
+- id: exec/python-pty-spawn
+  title: Spawns an interactive terminal
+  category: exec
+  severity: high
+  languages: [python]
+  match:
+    any:
+      - regex: '\bpty\.spawn\s*\('
+    scope: line
+  message: '{package} spawns an interactive terminal (pty.spawn) in {file}'
+
+- id: exec/reverse-shell
+  title: Reverse shell
+  category: exec
+  severity: critical
+  languages: ['*']
+  match:
+    any:
+      - regex: '/dev/tcp/'
+      - regex: '\bn(c|cat)\b[^\n]*\s-e\s'
+      - regex: '\b(ba)?sh\s+-i\s*>&'
+    scope: line
+  message: '{package} contains a reverse-shell pattern in {file}'
+
+- id: exec/python-socket-shell
+  title: Reverse shell over a socket
+  category: exec
+  severity: critical
+  languages: [python]
+  match:
+    all:
+      - regex: '\bsocket\.socket\s*\('
+      - regex: '\bdup2\s*\('
+      - regex: '/bin/(ba)?sh|pty\.spawn'
+    scope: file
+  message: '{package} wires a socket to a shell (reverse shell) in {file}'
