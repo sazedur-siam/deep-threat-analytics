@@ -46,11 +46,11 @@ Correlation keeps the noise down. A capability on its own, such as starting a ch
 | npm / pnpm / Yarn (classic and Berry) | `package.json` + `package-lock.json` / `pnpm-lock.yaml` / `yarn.lock` | Supported |
 | Python (pip, Poetry, uv)              | `requirements*.txt`, `pyproject.toml`, `poetry.lock`, `uv.lock`       | Supported |
 | Go                                    | `go.mod` (+ `vendor/` or the module cache)                            | Supported |
-| Rust (Cargo)                          | `Cargo.toml`                                                          | Planned   |
+| Rust (Cargo)                          | `Cargo.toml` + `Cargo.lock` (+ `vendor/` or `~/.cargo/registry`)      | Supported |
 | Java (Maven / Gradle)                 | `pom.xml`, `build.gradle(.kts)` (scans `-sources.jar` if present)     | Planned   |
 | PHP (Composer)                        | `composer.json`                                                       | Planned   |
 
-The extension scans what is **installed**: `node_modules` (including pnpm's symlinked store), the project's virtual environment (`.venv`, `venv` or `env`), and Go modules in `vendor/` or the module cache (`GOMODCACHE`, `GOPATH/pkg/mod` or `~/go/pkg/mod`; `go` itself is never run). Install your dependencies before scanning. Dependencies that are not installed still get the optional OSV and registry checks.
+The extension scans what is **installed**: `node_modules` (including pnpm's symlinked store), the project's virtual environment (`.venv`, `venv` or `env`), Go modules in `vendor/` or the module cache (`GOMODCACHE`, `GOPATH/pkg/mod` or `~/go/pkg/mod`), and crates in `vendor/` or `$CARGO_HOME/registry/src`. Neither `go` nor `cargo` is ever run. Install your dependencies before scanning. Dependencies that are not installed still get the optional OSV and registry checks.
 
 ## Usage
 
@@ -206,7 +206,7 @@ otherpkg>=2     # depthreat-ignore[exec/python-shell, obfuscation/*]
 - **Detection is pattern-based, not a full program analysis.** Code that builds names at runtime can evade rules, and some legitimate packages can match. Correlated rules and severities are designed to keep false positives low.
 - **Patterns match line by line.** `scope: file` and `scope: package` correlate across lines, but a single pattern cannot span lines.
 - **Unsupported install layouts:** Yarn Plug'n'Play (no `node_modules`) and Python packages installed outside a virtual environment are not scanned unless the interpreter can be queried (trusted workspaces only).
-- **Ecosystems:** Rust, Java and PHP are planned.
+- **Ecosystems:** Java and PHP are planned.
 
 ## Roadmap
 
@@ -216,8 +216,8 @@ otherpkg>=2     # depthreat-ignore[exec/python-shell, obfuscation/*]
 - [x] Diagnostics, hovers, Quick Fixes, sidebar, status bar
 - [x] OSV.dev vulnerabilities, typosquats and registry reputation
 - [ ] 0.1.0 pre-release on the Visual Studio Marketplace
-- [x] Go
-- [ ] Rust, Java and PHP
+- [x] Go and Rust
+- [ ] Java and PHP
 - [ ] SARIF export
 
 ## Development
