@@ -30,7 +30,7 @@ Deep Threat Analytics looks at the code itself, entirely on your machine. When y
 | Exec          | `child_process.exec`, `subprocess` with `shell=True`, reverse-shell patterns                              |
 | Dynamic code  | `eval` / `new Function` / `exec` on non-literal input, decode-and-execute, `marshal.loads`, `vm` contexts |
 | Obfuscation   | High-entropy base64/hex payloads that get decoded and executed, javascript-obfuscator signatures          |
-| Install hooks | npm lifecycle scripts, code in `setup.py`, executable `.pth` files, Rust `build.rs` scripts               |
+| Install hooks | npm lifecycle scripts, `setup.py` code, executable `.pth` files, Rust `build.rs`, Composer plugins        |
 | Network       | Webhook, paste and tunneling endpoints, DNS exfiltration, hardcoded IP addresses, public-IP lookups       |
 | Persistence   | Writes to shell profiles, crontab, LaunchAgents, systemd units, Windows Run keys                          |
 | Crypto mining | Mining pool URLs, miner binaries, crypto-wallet file access                                               |
@@ -48,9 +48,9 @@ Correlation keeps the noise down. A capability on its own, such as starting a ch
 | Go                                    | `go.mod` (+ `vendor/` or the module cache)                            | Supported |
 | Rust (Cargo)                          | `Cargo.toml` + `Cargo.lock` (+ `vendor/` or `~/.cargo/registry`)      | Supported |
 | Java (Maven / Gradle)                 | `pom.xml`, `build.gradle(.kts)` (scans `-sources.jar` if present)     | Planned   |
-| PHP (Composer)                        | `composer.json`                                                       | Planned   |
+| PHP (Composer)                        | `composer.json` + `composer.lock` (+ `vendor/`)                       | Supported |
 
-The extension scans what is **installed**: `node_modules` (including pnpm's symlinked store), the project's virtual environment (`.venv`, `venv` or `env`), Go modules in `vendor/` or the module cache (`GOMODCACHE`, `GOPATH/pkg/mod` or `~/go/pkg/mod`), and crates in `vendor/` or `$CARGO_HOME/registry/src`. Neither `go` nor `cargo` is ever run. Install your dependencies before scanning. Dependencies that are not installed still get the optional OSV and registry checks.
+The extension scans what is **installed**: `node_modules` (including pnpm's symlinked store), the project's virtual environment (`.venv`, `venv` or `env`), Go modules in `vendor/` or the module cache (`GOMODCACHE`, `GOPATH/pkg/mod` or `~/go/pkg/mod`), crates in `vendor/` or `$CARGO_HOME/registry/src`, and Composer packages in `vendor/`. Neither `go` nor `cargo` is ever run. Install your dependencies before scanning. Dependencies that are not installed still get the optional OSV and registry checks.
 
 ## Usage
 
@@ -206,7 +206,7 @@ otherpkg>=2     # depthreat-ignore[exec/python-shell, obfuscation/*]
 - **Detection is pattern-based, not a full program analysis.** Code that builds names at runtime can evade rules, and some legitimate packages can match. Correlated rules and severities are designed to keep false positives low.
 - **Patterns match line by line.** `scope: file` and `scope: package` correlate across lines, but a single pattern cannot span lines.
 - **Unsupported install layouts:** Yarn Plug'n'Play (no `node_modules`) and Python packages installed outside a virtual environment are not scanned unless the interpreter can be queried (trusted workspaces only).
-- **Ecosystems:** Java and PHP are planned.
+- **Ecosystems:** Java is planned.
 
 ## Roadmap
 
@@ -216,8 +216,8 @@ otherpkg>=2     # depthreat-ignore[exec/python-shell, obfuscation/*]
 - [x] Diagnostics, hovers, Quick Fixes, sidebar, status bar
 - [x] OSV.dev vulnerabilities, typosquats and registry reputation
 - [ ] 0.1.0 pre-release on the Visual Studio Marketplace
-- [x] Go and Rust
-- [ ] Java and PHP
+- [x] Go, Rust and PHP
+- [ ] Java
 - [ ] SARIF export
 
 ## Development
