@@ -5,7 +5,7 @@ import { compileRule, loadRules, type CompiledRule } from '../../../src/rules/lo
 import { scanPackageCode } from '../../../src/scanners/codeScanner';
 
 // Every snippet here is an inert string that is only pattern-matched, never executed.
-type Lang = 'js' | 'py' | 'go';
+type Lang = 'js' | 'py' | 'go' | 'rs';
 interface Case {
   lang: Lang;
   pos: string[];
@@ -241,6 +241,28 @@ const CASES: Record<string, Case> = {
     pos: ['p, err := plugin.Open(path)'],
     neg: ['p := plugins.Open'],
   },
+  'exec/rust-shell': {
+    lang: 'rs',
+    pos: ['Command::new("sh").arg("-c").arg(cmd).status()'],
+    neg: ['Command::new("cc").arg("foo.c").status()'],
+  },
+  'env-access/rust-env-vars': {
+    lang: 'rs',
+    pos: ['for (k, v) in env::vars() {'],
+    neg: ['let home = env::var("HOME");'],
+  },
+  'exfiltration/rust-env-to-network': {
+    lang: 'rs',
+    pos: [
+      'let all: Vec<_> = std::env::vars().collect();\nreqwest::blocking::Client::new().post(url)',
+    ],
+    neg: ['let home = env::var("HOME");\nreqwest::blocking::get(url)'],
+  },
+  'dynamic-code/rust-dynamic-library': {
+    lang: 'rs',
+    pos: ['let lib = unsafe { libloading::Library::new(path)? };'],
+    neg: ['let lib = Library::default();'],
+  },
   'crypto-mining/miner': {
     lang: 'js',
     pos: ["spawn('./xmrig', args)"],
@@ -251,6 +273,7 @@ const CASES: Record<string, Case> = {
 // Python-language rules that should also be checked against their Python spelling.
 const EXTRA_POSITIVES: Record<string, Array<[Lang, string]>> = {
   'exfiltration/secret-file-to-network': [
+    ['rs', 'let k = fs::read(home.join(".ssh/id_rsa"))?;\nlet s = TcpStream::connect(addr)?;'],
     ['go', 'b, _ := os.ReadFile(home + "/.ssh/id_rsa")\nhttp.Post(u, "", bytes.NewReader(b))'],
   ],
 };
@@ -263,7 +286,12 @@ const EXTRA_PY_POSITIVES: Record<string, string[]> = {
   'secrets-fs/ssh-keys': ["open(os.path.expanduser('~/.ssh/id_ed25519'))"],
 };
 
-const LANGUAGE: Record<Lang, Language> = { js: 'javascript', py: 'python', go: 'go' };
+const LANGUAGE: Record<Lang, Language> = {
+  js: 'javascript',
+  py: 'python',
+  go: 'go',
+  rs: 'rust',
+};
 const dep: ResolvedDep = {
   ecosystem: 'npm',
   name: 'fixture-pkg',
