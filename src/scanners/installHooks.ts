@@ -177,6 +177,26 @@ function scanBuildRs(ctx: Ctx, file: string, text: string): Finding[] {
   ];
 }
 
+/** Composer runs plugin packages during install/update; other dependency scripts never run. */
+function scanComposerManifest(ctx: Ctx, file: string, text: string): Finding[] {
+  const root = parseTree(text);
+  const node = root ? findNodeAtLocation(root, ['type']) : undefined;
+  if (node?.value !== 'composer-plugin') return [];
+  const lines = new LineIndex(text);
+  return [
+    finding(
+      ctx,
+      file,
+      'install-hook/composer-plugin',
+      'Composer plugin runs during install',
+      'medium',
+      `${ctx.dep.name} is a Composer plugin, so its code runs during composer install and update`,
+      lines.range(node.offset, node.offset + node.length),
+      '"type": "composer-plugin"',
+    ),
+  ];
+}
+
 function scanPth(ctx: Ctx, file: string, text: string): Finding[] {
   const lines = new LineIndex(text);
   const known = KNOWN_PTH.some((re) => re.test(path.basename(file)));
@@ -223,9 +243,15 @@ export async function scanInstallHooks(
       dep.ecosystem === 'cargo' &&
       dep.installPath !== undefined &&
       file === path.join(dep.installPath, 'build.rs');
+    const isComposerManifest =
+      dep.ecosystem === 'composer' &&
+      base === 'composer.json' &&
+      dep.installPath !== undefined &&
+      path.dirname(file) === dep.installPath;
     const relevant =
       isRootManifest ||
       isBuildScript ||
+      isComposerManifest ||
       (dep.ecosystem === 'pypi' && (base === 'setup.py' || base.endsWith('.pth')));
     if (!relevant) continue;
     let text: string;
@@ -238,6 +264,7 @@ export async function scanInstallHooks(
       const gyp = existsSync(path.join(dep.installPath as string, 'binding.gyp'));
       out.push(...scanNpmManifest(ctx, file, text, gyp));
     } else if (isBuildScript) out.push(...scanBuildRs(ctx, file, text));
+    else if (isComposerManifest) out.push(...scanComposerManifest(ctx, file, text));
     else if (base === 'setup.py') out.push(...scanSetupPy(ctx, file, text));
     else out.push(...scanPth(ctx, file, text));
   }
