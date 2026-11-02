@@ -9,6 +9,8 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -21,15 +23,15 @@ jobs:
       - name: Check the tag matches package.json
         run: test "v$(node -p "require('./package.json').version")" = "${GITHUB_REF_NAME}"
       - name: Package
-        run: npx vsce package --out deep-threat-analytics.vsix
+        run: |
+          # Odd minor versions are pre-releases (Marketplace convention); vsce marks this at package time.
+          minor=$(node -p "require('./package.json').version.split('.')[1]")
+          if [ $((minor % 2)) -eq 1 ]; then flag=--pre-release; else flag=; fi
+          npx vsce package $flag --out deep-threat-analytics.vsix
       - name: Publish
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
-        run: |
-          # Odd minor versions are pre-releases (Marketplace convention).
-          minor=$(node -p "require('./package.json').version.split('.')[1]")
-          if [ $((minor % 2)) -eq 1 ]; then flag=--pre-release; else flag=; fi
-          npx vsce publish $flag --packagePath deep-threat-analytics.vsix
+        run: npx vsce publish --packagePath deep-threat-analytics.vsix
       - uses: softprops/action-gh-release@v2
         with:
           files: deep-threat-analytics.vsix
