@@ -11,6 +11,7 @@ import {
   anchorMessage,
   buildAnchors,
   buildTree,
+  fixedVersionEdit,
   summarizeScan,
   visibleFindings,
 } from '../../src/ui/model';
@@ -151,5 +152,51 @@ describe('summarizeScan', () => {
     );
     const one = { ...result, findings: result.findings.slice(0, 1) };
     expect(summarizeScan(one, 'info').text).toMatch(/^1 issue in/);
+  });
+});
+
+describe('fixedVersionEdit', () => {
+  const apply = (line: string, name: string, fixed: string, file: string) => {
+    const startCol = line.indexOf(name);
+    const edit = fixedVersionEdit(
+      line,
+      { name, range: { startCol, endCol: startCol + name.length } },
+      fixed,
+      file,
+    );
+    return edit && line.slice(0, edit.startCol) + edit.newText + line.slice(edit.endCol);
+  };
+
+  it('keeps npm range operators', () => {
+    expect(apply('    "lodash": "^4.17.15",', 'lodash', '4.17.21', '/p/package.json')).toBe(
+      '    "lodash": "^4.17.21",',
+    );
+    expect(apply('"a": "~1.0.0"', 'a', '1.0.5', '/p/package.json')).toBe('"a": "~1.0.5"');
+    expect(apply('"a" : "1.0.0"', 'a', '1.0.5', '/p/package.json')).toBe('"a" : "1.0.5"');
+  });
+
+  it('skips npm specs it cannot safely rewrite', () => {
+    expect(apply('"a": "latest"', 'a', '2.0.0', '/p/package.json')).toBeUndefined();
+    expect(apply('"a": ">=1 <2"', 'a', '2.0.0', '/p/package.json')).toBeUndefined();
+    expect(apply('"a": 1', 'a', '2.0.0', '/p/package.json')).toBeUndefined();
+  });
+
+  it('rewrites pip requirement specs', () => {
+    expect(apply('flask==0.12  # pinned', 'flask', '0.12.3', '/p/requirements.txt')).toBe(
+      'flask==0.12.3  # pinned',
+    );
+    expect(
+      apply(
+        'flask[async]>=0.10,<1; python_version>"3"',
+        'flask',
+        '0.12.3',
+        '/p/requirements-dev.txt',
+      ),
+    ).toBe('flask[async]>=0.12.3; python_version>"3"');
+    expect(apply('flask', 'flask', '1.0', '/p/requirements.txt')).toBe('flask>=1.0');
+    expect(
+      apply('flask @ https://example.invalid/f.whl', 'flask', '1.0', '/p/requirements.txt'),
+    ).toBeUndefined();
+    expect(apply('flask = "^1"', 'flask', '1.0', '/p/pyproject.toml')).toBeUndefined();
   });
 });
