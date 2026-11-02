@@ -1,0 +1,57 @@
+{
+  "name": "deep-threat-analytics",
+  "displayName": "Deep Threat Analytics",
+  "description": "Scans the source code of your dependencies for behavior that can compromise your system or leak data, plus known CVEs and package reputation.",
+  "version": "0.0.1",
+  "publisher": "sazedur-siam",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sazedur-siam/deep-threat-analytics.git"
+  },
+  "bugs": {
+    "url": "https://github.com/sazedur-siam/deep-threat-analytics/issues"
+  },
+  "homepage": "https://github.com/sazedur-siam/deep-threat-analytics#readme",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Linters",
+    "Other"
+  ],
+  "keywords": [
+    "security",
+    "dependencies",
+    "supply chain",
+    "malware",
+    "vulnerability"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "Python interpreter discovery and workspace-defined rule paths are disabled until the workspace is trusted."
+    }
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "depthreat.scanWorkspace",
+        "title": "Scan Workspace",
+        "category": "DepThreat"
+      }
+    ]
+  },
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "@types/vscode": "^1.90.0",
+    "typescript": "^7.0.2"
+  }
+}
