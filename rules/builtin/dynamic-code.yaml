@@ -83,3 +83,14 @@
       - regex: '__import__\s*\(\s*[''"](os|subprocess|socket|base64|zlib|marshal|codecs|ctypes|pty)[''"]\s*\)'
     scope: line
   message: '{package} hides imports of sensitive modules behind __import__ in {file}'
+
+- id: dynamic-code/go-plugin-load
+  title: Loads a compiled plugin at runtime
+  category: dynamic-code
+  severity: medium
+  languages: [go]
+  match:
+    any:
+      - regex: '\bplugin\.Open\('
+    scope: line
+  message: '{package} loads a compiled Go plugin at runtime in {file}'

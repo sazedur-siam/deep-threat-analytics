@@ -35,3 +35,14 @@
       - regex: 'os\.(environ(\.get\s*\(|\[)|getenv\s*\()\s*[''"]\w*(TOKEN|SECRET|PASSWORD|PRIVATE_KEY|ACCESS_KEY)\b'
     scope: line
   message: '{package} reads secret-looking environment variables in {file}'
+
+- id: env-access/go-environ
+  title: Enumerates environment variables
+  category: env-access
+  severity: low
+  languages: [go]
+  match:
+    any:
+      - regex: '\bos\.Environ\(\)'
+    scope: line
+  message: '{package} reads all environment variables in {file}'

@@ -27,11 +27,11 @@
   title: Reads credential files and sends network requests
   category: exfiltration
   severity: high
-  languages: [javascript, typescript, python]
+  languages: [javascript, typescript, python, go]
   match:
     all:
       - regex: '\.ssh[/\\]+id_|\bid_(rsa|ed25519)\b|\.aws[/\\]+credentials|[''"`/\\]\.(npmrc|pypirc|git-credentials|netrc)\b|\.docker[/\\]+config\.json|\.kube[/\\]+config|\bwallet\.dat\b|Login Data|logins\.json'
-      - regex: '\bhttps?\.(request|get)\s*\(|\bfetch\s*\(|\baxios\b|\bgot\s*\(|XMLHttpRequest|\brequests\.(post|get|put)\s*\(|urllib\.request|\burlopen\s*\(|http\.client|\bhttpx\.'
+      - regex: '\bhttps?\.(request|get)\s*\(|\bfetch\s*\(|\baxios\b|\bgot\s*\(|XMLHttpRequest|\brequests\.(post|get|put)\s*\(|urllib\.request|\burlopen\s*\(|http\.client|\bhttpx\.|\bhttp\.(Post|PostForm|Get|Head|NewRequest(WithContext)?)\(|\bnet\.Dial(Timeout)?\(|\.Do\(\s*req\b'
     not:
       # The official cloud SDKs read their own credential files and call their own APIs.
       - regex: 'AWS_SHARED_CREDENTIALS_FILE|AWS_CONFIG_FILE|KUBECONFIG'
@@ -75,3 +75,28 @@
       - regex: '\bhttps?\.(request|get)\s*\(|\bfetch\s*\(|\baxios\b|\bdns\.(resolve|lookup)|\brequests\.(post|get)\s*\(|\burlopen\s*\('
     scope: file
   message: '{package} collects hostname and username and sends network requests in {file}'
+
+- id: exfiltration/go-env-to-network
+  title: Sends environment variables over the network
+  category: exfiltration
+  severity: high
+  languages: [go]
+  match:
+    all:
+      - regex: '\bos\.Environ\(\)'
+      - regex: '\bhttp\.(Post|PostForm|Get|Head|NewRequest(WithContext)?)\(|\bnet\.Dial(Timeout)?\(|\.Do\(\s*req\b'
+    scope: file
+  message: '{package} collects environment variables and sends network requests in {file}'
+
+- id: exfiltration/go-homedir-read-and-send
+  title: Reads files from the home directory and sends network requests
+  category: exfiltration
+  severity: medium
+  languages: [go]
+  match:
+    all:
+      - regex: '\bos\.UserHomeDir\(\)'
+      - regex: '\b(os|ioutil)\.(ReadFile|Open|ReadDir)\('
+      - regex: '\bhttp\.(Post|PostForm|Get|Head|NewRequest(WithContext)?)\(|\bnet\.Dial(Timeout)?\(|\.Do\(\s*req\b'
+    scope: file
+  message: '{package} reads files under the home directory and sends network requests in {file}'

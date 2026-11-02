@@ -73,3 +73,15 @@
       - regex: '\.hex\(\)|b(32|64)encode|binascii\.hexlify'
     scope: file
   message: '{package} sends encoded machine data through DNS lookups in {file}'
+
+- id: network/go-init-network
+  title: Makes network requests when imported
+  category: network
+  severity: medium
+  languages: [go]
+  match:
+    all:
+      - regex: '^func init\(\)\s*\{'
+      - regex: '\bhttp\.(Post|PostForm|Get|Head|NewRequest(WithContext)?)\(|\bnet\.Dial(Timeout)?\(|\.Do\(\s*req\b'
+    scope: file
+  message: '{package} makes network requests from an init() function in {file}, which runs on import'

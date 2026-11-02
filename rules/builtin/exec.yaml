@@ -83,3 +83,25 @@
       - regex: '/bin/(ba)?sh|pty\.spawn'
     scope: file
   message: '{package} wires a socket to a shell (reverse shell) in {file}'
+
+- id: exec/go-shell
+  title: Spawns a shell command
+  category: exec
+  severity: medium
+  languages: [go]
+  match:
+    any:
+      - regex: 'exec\.Command(Context)?\(\s*(\w+,\s*)?"(/bin/|/usr/bin/)?(sh|bash|zsh|cmd(\.exe)?|powershell(\.exe)?|pwsh)"'
+    scope: line
+  message: '{package} runs shell commands in {file}'
+
+- id: exec/go-syscall-exec
+  title: Replaces the process with another program
+  category: exec
+  severity: medium
+  languages: [go]
+  match:
+    any:
+      - regex: '\b(syscall|unix)\.(Exec|ForkExec)\('
+    scope: line
+  message: '{package} executes programs through raw system calls in {file}'
