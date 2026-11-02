@@ -5,7 +5,7 @@ import { compileRule, loadRules, type CompiledRule } from '../../../src/rules/lo
 import { scanPackageCode } from '../../../src/scanners/codeScanner';
 
 // Every snippet here is an inert string that is only pattern-matched, never executed.
-type Lang = 'js' | 'py' | 'go' | 'rs';
+type Lang = 'js' | 'py' | 'go' | 'rs' | 'php';
 interface Case {
   lang: Lang;
   pos: string[];
@@ -263,6 +263,36 @@ const CASES: Record<string, Case> = {
     pos: ['let lib = unsafe { libloading::Library::new(path)? };'],
     neg: ['let lib = Library::default();'],
   },
+  'exec/php-shell': {
+    lang: 'php',
+    pos: ['$out = shell_exec($cmd);', 'system("curl " . $url);'],
+    neg: ['$pdo->exec($sql);', 'Process::exec($x);', 'function systemInfo() {}'],
+  },
+  'env-access/php-environ': {
+    lang: 'php',
+    pos: ['$all = getenv();', '$s = json_encode($_SERVER);'],
+    neg: ['$home = getenv("HOME");'],
+  },
+  'exfiltration/php-env-to-network': {
+    lang: 'php',
+    pos: ['$d = json_encode($_ENV);\n$ch = curl_init($u);\ncurl_exec($ch);'],
+    neg: ['$d = getenv("APP_ENV");\ncurl_exec($ch);'],
+  },
+  'dynamic-code/php-eval': {
+    lang: 'php',
+    pos: ['eval($code);', '$f = create_function("$a", $body);', "preg_replace('/x/e', $r, $s);"],
+    neg: ['$model->eval($x);', 'assert(true);'],
+  },
+  'dynamic-code/php-decode-execute': {
+    lang: 'php',
+    pos: ['eval(base64_decode($p));', 'eval(gzinflate(base64_decode($p)));'],
+    neg: ['$x = base64_decode($p);'],
+  },
+  'dynamic-code/php-request-exec': {
+    lang: 'php',
+    pos: ['eval($_POST["c"]);', 'system($_GET["cmd"]);'],
+    neg: ['$name = htmlspecialchars($_GET["name"]);'],
+  },
   'crypto-mining/miner': {
     lang: 'js',
     pos: ["spawn('./xmrig', args)"],
@@ -273,6 +303,7 @@ const CASES: Record<string, Case> = {
 // Python-language rules that should also be checked against their Python spelling.
 const EXTRA_POSITIVES: Record<string, Array<[Lang, string]>> = {
   'exfiltration/secret-file-to-network': [
+    ['php', '$k = file_get_contents($home . "/.ssh/id_rsa");\n$s = fsockopen($host, 80);'],
     ['rs', 'let k = fs::read(home.join(".ssh/id_rsa"))?;\nlet s = TcpStream::connect(addr)?;'],
     ['go', 'b, _ := os.ReadFile(home + "/.ssh/id_rsa")\nhttp.Post(u, "", bytes.NewReader(b))'],
   ],
@@ -291,6 +322,7 @@ const LANGUAGE: Record<Lang, Language> = {
   py: 'python',
   go: 'go',
   rs: 'rust',
+  php: 'php',
 };
 const dep: ResolvedDep = {
   ecosystem: 'npm',
