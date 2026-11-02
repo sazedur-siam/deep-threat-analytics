@@ -11,6 +11,9 @@ All notable changes to this extension are documented here. The format follows
 - Go support: `go.mod` parsing (including `replace` and `// indirect`), scanning of modules in
   `vendor/` or the module cache, and Go rules for shell execution, environment exfiltration and
   network calls from `init()` functions.
+- Rust support: `Cargo.toml` and `Cargo.lock` parsing (renames, target tables, path crates
+  skipped), scanning of crates in `vendor/` or the Cargo registry cache, Rust rules, and
+  `build.rs` scripts treated as install hooks.
 
 ## [0.1.0] - 2026-11-02
 
