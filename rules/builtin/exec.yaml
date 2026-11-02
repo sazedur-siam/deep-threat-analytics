@@ -105,3 +105,14 @@
       - regex: '\b(syscall|unix)\.(Exec|ForkExec)\('
     scope: line
   message: '{package} executes programs through raw system calls in {file}'
+
+- id: exec/rust-shell
+  title: Spawns a shell command
+  category: exec
+  severity: medium
+  languages: [rust]
+  match:
+    any:
+      - regex: 'Command::new\(\s*"(/bin/|/usr/bin/)?(sh|bash|zsh|cmd(\.exe)?|powershell(\.exe)?|pwsh)"'
+    scope: line
+  message: '{package} runs shell commands in {file}'

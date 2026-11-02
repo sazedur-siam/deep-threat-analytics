@@ -46,3 +46,14 @@
       - regex: '\bos\.Environ\(\)'
     scope: line
   message: '{package} reads all environment variables in {file}'
+
+- id: env-access/rust-env-vars
+  title: Enumerates environment variables
+  category: env-access
+  severity: low
+  languages: [rust]
+  match:
+    any:
+      - regex: '\benv::vars(_os)?\(\)'
+    scope: line
+  message: '{package} reads all environment variables in {file}'

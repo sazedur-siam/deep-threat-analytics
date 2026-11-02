@@ -94,3 +94,14 @@
       - regex: '\bplugin\.Open\('
     scope: line
   message: '{package} loads a compiled Go plugin at runtime in {file}'
+
+- id: dynamic-code/rust-dynamic-library
+  title: Loads a native library at runtime
+  category: dynamic-code
+  severity: medium
+  languages: [rust]
+  match:
+    any:
+      - regex: '\blibloading::Library::new\(|\bdlopen\('
+    scope: line
+  message: '{package} loads a native library at runtime in {file}'
