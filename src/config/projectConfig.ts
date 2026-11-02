@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import * as path from 'node:path';
-import { isMap, isSeq, parseDocument, type Document } from 'yaml';
+import { isMap, isScalar, isSeq, parseDocument, type Document } from 'yaml';
 import { z } from 'zod';
 import { CATEGORIES, SEVERITIES } from '../core/types';
 
@@ -175,10 +175,12 @@ function openDoc(text: string): Document {
 /** Append `value` to the list at `keys`, creating it if needed; no-op when already present. */
 function appendUnique(text: string, keys: string[], value: unknown): string {
   const doc = openDoc(text);
-  let seq = doc.getIn(keys);
-  if (!isSeq(seq)) {
+  let seq = doc.getIn(keys, true);
+  // Only create the list when it is missing or empty; never overwrite other user content.
+  const missing = seq === undefined || seq === null || (isScalar(seq) && seq.value === null);
+  if (missing) {
     doc.setIn(keys, doc.createNode([]));
-    seq = doc.getIn(keys);
+    seq = doc.getIn(keys, true);
   }
   if (!isSeq(seq)) return text;
   const wanted = JSON.stringify(value);
