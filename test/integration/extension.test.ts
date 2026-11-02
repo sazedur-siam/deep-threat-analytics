@@ -7,7 +7,7 @@ import type { DepThreatApi } from '../../src/extension';
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 async function api(): Promise<DepThreatApi> {
-  const ext = vscode.extensions.getExtension<DepThreatApi>('sazedur-siam.deep-threat-analytics');
+  const ext = vscode.extensions.getExtension<DepThreatApi>('MdSazedurRahman.deep-threat-analytics');
   assert.ok(ext, 'extension not found');
   return ext.activate();
 }

@@ -3,7 +3,7 @@
   "displayName": "Deep Threat Analytics",
   "description": "Scans the source code of your dependencies for behavior that can compromise your system or leak data, plus known CVEs and package reputation.",
   "version": "0.1.0",
-  "publisher": "sazedur-siam",
+  "publisher": "MdSazedurRahman",
   "license": "MIT",
   "repository": {
     "type": "git",
