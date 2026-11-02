@@ -34,7 +34,8 @@ function openZip(file: string): Promise<yauzl.ZipFile> {
   return new Promise((resolve, reject) =>
     yauzl.open(
       file,
-      { lazyEntries: true, autoClose: true, validateEntrySizes: true },
+      // decodeStrings: false keeps yauzl from aborting on hostile names; we validate them ourselves.
+      { lazyEntries: true, autoClose: true, validateEntrySizes: true, decodeStrings: false },
       (err, zip) => (err || !zip ? reject(err ?? new Error('cannot open archive')) : resolve(zip)),
     ),
   );
@@ -71,7 +72,9 @@ export async function extractJar(
     zip.on('error', reject);
     zip.on('end', resolve);
     zip.on('entry', (entry: yauzl.Entry) => {
-      const name = entry.fileName;
+      const name = Buffer.isBuffer(entry.fileName)
+        ? (entry.fileName as Buffer).toString('utf8')
+        : entry.fileName;
       const target = safeEntryPath(destDir, name);
       const wanted = !name.endsWith('/') && opts.include(name);
       if (
