@@ -2,7 +2,15 @@ import * as vscode from 'vscode';
 import type { DepThreatSettings, DiagnosticLevel } from '../config/settings';
 import type { ScanResult } from '../core/engine';
 import type { SourceRange } from '../core/types';
-import { anchorHover, anchorLevel, anchorMessage, buildAnchors, type DepAnchor } from './model';
+import { compareVersions } from '../scanners/osv';
+import {
+  anchorHover,
+  anchorLevel,
+  anchorMessage,
+  buildAnchors,
+  fixedVersionEdit,
+  type DepAnchor,
+} from './model';
 
 export const DIAGNOSTIC_SOURCE = 'DepThreat';
 
@@ -112,6 +120,30 @@ export function registerCodeActions(presenter: DiagnosticsPresenter): vscode.Dis
           actions.push(a);
         };
         const [top] = anchor.findings;
+        // Bump the dependency itself to the highest version that fixes all its known issues.
+        const fixed = anchor.findings
+          .filter((f) => f.fixedVersion && f.package.name === anchor.dep.name)
+          .map((f) => f.fixedVersion as string)
+          .sort(compareVersions)
+          .at(-1);
+        if (fixed) {
+          const lineNo = anchor.dep.range.startLine;
+          const edit = fixedVersionEdit(doc.lineAt(lineNo).text, anchor.dep, fixed, doc.uri.fsPath);
+          if (edit) {
+            const fix = new vscode.CodeAction(
+              `Update ${anchor.dep.name} to ${fixed} (fixes known vulnerabilities)`,
+              vscode.CodeActionKind.QuickFix,
+            );
+            fix.edit = new vscode.WorkspaceEdit();
+            fix.edit.replace(
+              doc.uri,
+              new vscode.Range(lineNo, edit.startCol, lineNo, edit.endCol),
+              edit.newText,
+            );
+            fix.isPreferred = true;
+            actions.push(fix);
+          }
+        }
         add(
           `Show ${anchor.findings.length} finding(s) for ${anchor.dep.name}`,
           'depthreat.revealPackage',
