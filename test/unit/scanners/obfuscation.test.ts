@@ -54,6 +54,17 @@ describe('detectObfuscation', () => {
     );
   });
 
+  it('flags PHP payloads fed to eval', () => {
+    const php = detectObfuscation(
+      '/pkg/x.php',
+      'x.php',
+      `<?php eval(gzinflate(base64_decode('${payload}')));`,
+      dep,
+      'php',
+    );
+    expect(php.map((f) => f.ruleId)).toEqual(['obfuscation/encoded-payload-exec']);
+  });
+
   it('flags hex payloads', () => {
     const hex = noise('0123456789abcdef', 400);
     expect(ids(`const h = '${hex}'; new Function(h)();`)).toContain(

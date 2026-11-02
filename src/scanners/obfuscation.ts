@@ -26,6 +26,7 @@ const EXEC_SINK: Record<string, RegExp> = {
   javascript: /\beval\s*\(|\bnew\s+Function\s*\(|\bFunction\s*\(|\bvm\.(runIn\w*|Script)\b/,
   typescript: /\beval\s*\(|\bnew\s+Function\s*\(|\bFunction\s*\(|\bvm\.(runIn\w*|Script)\b/,
   python: /\bexec\s*\(|\beval\s*\(|\bmarshal\.loads\s*\(|\bcompile\s*\(/,
+  php: /\beval\s*\(|\bassert\s*\(|\bcreate_function\s*\(/,
 };
 
 interface Detection {
