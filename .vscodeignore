@@ -10,7 +10,7 @@ node_modules/**
 **/*.ts
 esbuild.mjs
 tsconfig.json
-vitest.config.ts
+vitest.config.mts
 eslint.config.mjs
 .prettierrc.json
 .vscode-test.mjs
