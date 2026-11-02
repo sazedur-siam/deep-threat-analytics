@@ -1,0 +1,29 @@
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+
+  .:
+    dependencies:
+      pnpm-a:
+        specifier: ^1.0.0
+        version: 1.0.0
+
+packages:
+
+  pnpm-a@1.0.0:
+    resolution: {integrity: sha512-AAAA}
+
+  pnpm-b@2.0.0:
+    resolution: {integrity: sha512-BBBB}
+
+snapshots:
+
+  pnpm-a@1.0.0:
+    dependencies:
+      pnpm-b: 2.0.0
+
+  pnpm-b@2.0.0: {}
