@@ -1,0 +1,17 @@
+{
+  "name": "npm-sample",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "evil-env-stealer": "^1.0.0",
+    "evil-postinstall": "2.1.0",
+    "clean-utils": "^3.0.0",
+    "not-installed": "^4.2.0"
+  },
+  "devDependencies": {
+    "dev-only-tool": "^1.0.0"
+  },
+  "depthreat": {
+    "ignore": { "clean-utils": ["network/*"], "dev-only-tool": "all" }
+  }
+}
