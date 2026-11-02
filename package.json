@@ -30,7 +30,10 @@
     "rust",
     "cargo",
     "php",
-    "composer"
+    "composer",
+    "java",
+    "maven",
+    "gradle"
   ],
   "main": "./dist/extension.js",
   "activationEvents": [],
@@ -137,21 +140,21 @@
       "explorer/context": [
         {
           "command": "depthreat.scanManifest",
-          "when": "resourceFilename == package.json || resourceFilename == pyproject.toml || resourceFilename == go.mod || resourceFilename == Cargo.toml || resourceFilename == composer.json || resourceFilename =~ /^requirements.*\\.txt$/",
+          "when": "resourceFilename == package.json || resourceFilename == pyproject.toml || resourceFilename == go.mod || resourceFilename == Cargo.toml || resourceFilename == composer.json || resourceFilename == pom.xml || resourceFilename == build.gradle || resourceFilename == build.gradle.kts || resourceFilename =~ /^requirements.*\\.txt$/",
           "group": "depthreat@1"
         }
       ],
       "editor/context": [
         {
           "command": "depthreat.scanManifest",
-          "when": "resourceFilename == package.json || resourceFilename == pyproject.toml || resourceFilename == go.mod || resourceFilename == Cargo.toml || resourceFilename == composer.json || resourceFilename =~ /^requirements.*\\.txt$/",
+          "when": "resourceFilename == package.json || resourceFilename == pyproject.toml || resourceFilename == go.mod || resourceFilename == Cargo.toml || resourceFilename == composer.json || resourceFilename == pom.xml || resourceFilename == build.gradle || resourceFilename == build.gradle.kts || resourceFilename =~ /^requirements.*\\.txt$/",
           "group": "depthreat@1"
         }
       ],
       "editor/title": [
         {
           "command": "depthreat.scanManifest",
-          "when": "resourceFilename == package.json || resourceFilename == pyproject.toml || resourceFilename == go.mod || resourceFilename == Cargo.toml || resourceFilename == composer.json || resourceFilename =~ /^requirements.*\\.txt$/",
+          "when": "resourceFilename == package.json || resourceFilename == pyproject.toml || resourceFilename == go.mod || resourceFilename == Cargo.toml || resourceFilename == composer.json || resourceFilename == pom.xml || resourceFilename == build.gradle || resourceFilename == build.gradle.kts || resourceFilename =~ /^requirements.*\\.txt$/",
           "group": "navigation@90"
         }
       ],

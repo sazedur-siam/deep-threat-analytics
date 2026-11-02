@@ -2,6 +2,7 @@ import * as path from 'node:path';
 import * as vscode from 'vscode';
 import type { EcosystemAdapter } from '../adapters/adapter';
 import { goAdapter } from '../adapters/golang';
+import { javaAdapter } from '../adapters/java';
 import { npmAdapter } from '../adapters/npm';
 import { phpAdapter } from '../adapters/php';
 import { pythonAdapter } from '../adapters/python';
@@ -23,6 +24,7 @@ export const ADAPTERS: readonly EcosystemAdapter[] = [
   goAdapter,
   rustAdapter,
   phpAdapter,
+  javaAdapter,
 ];
 
 /** Builds the online checks enabled in settings (filled in by the OSV/reputation layer). */

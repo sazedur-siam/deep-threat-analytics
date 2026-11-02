@@ -81,6 +81,9 @@ export const MANIFEST_SELECTOR: vscode.DocumentSelector = [
   { scheme: 'file', pattern: '**/go.mod' },
   { scheme: 'file', pattern: '**/Cargo.toml' },
   { scheme: 'file', pattern: '**/composer.json' },
+  { scheme: 'file', pattern: '**/pom.xml' },
+  { scheme: 'file', pattern: '**/build.gradle' },
+  { scheme: 'file', pattern: '**/build.gradle.kts' },
 ];
 
 export function registerHover(presenter: DiagnosticsPresenter): vscode.Disposable {
