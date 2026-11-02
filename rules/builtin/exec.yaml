@@ -1,0 +1,24 @@
+# Process execution from inside a dependency.
+- id: exec/node-child-process-shell
+  title: Spawns a shell command
+  category: exec
+  severity: medium
+  languages: [javascript, typescript]
+  match:
+    any:
+      - regex: 'child_process[''"]?\)?\s*\.\s*(exec|execSync)\s*\('
+      - regex: '\b(exec|execSync|spawn|spawnSync)\s*\([^)]*shell\s*:\s*true'
+    scope: line
+  message: '{package} runs shell commands in {file}'
+
+- id: exec/python-shell
+  title: Spawns a shell command
+  category: exec
+  severity: medium
+  languages: [python]
+  match:
+    any:
+      - regex: '\bos\.(system|popen)\s*\('
+      - regex: '\bsubprocess\.\w+\([^)]*shell\s*=\s*True'
+    scope: line
+  message: '{package} runs shell commands in {file}'
