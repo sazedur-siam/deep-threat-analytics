@@ -17,3 +17,5 @@ jobs:
       - run: npm ci
       - run: npm run check
       - run: npm run build
+      - name: Integration tests (VS Code)
+        run: xvfb-run -a npm run test:integration
