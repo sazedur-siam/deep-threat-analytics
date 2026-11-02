@@ -127,3 +127,25 @@
       - regex: '(^|[^>\w$:])(shell_exec|system|passthru|popen|proc_open|pcntl_exec|exec)\s*\('
     scope: line
   message: '{package} runs shell commands in {file}'
+
+- id: exec/java-process
+  title: Starts operating-system processes
+  category: exec
+  severity: low
+  languages: [java]
+  match:
+    any:
+      - regex: 'Runtime\.getRuntime\(\)\.exec\(|\bnew\s+ProcessBuilder\('
+    scope: line
+  message: '{package} starts operating-system processes in {file}'
+
+- id: exec/java-shell
+  title: Spawns a shell command
+  category: exec
+  severity: medium
+  languages: [java]
+  match:
+    any:
+      - regex: '(exec|ProcessBuilder)\(\s*(new\s+String\[\]\s*\{\s*)?"(/bin/|/usr/bin/)?(sh|bash|zsh|cmd(\.exe)?|powershell(\.exe)?)"'
+    scope: line
+  message: '{package} runs shell commands in {file}'

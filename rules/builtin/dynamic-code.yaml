@@ -140,3 +140,15 @@
       - regex: '\b(eval|assert|system|shell_exec|passthru|exec|popen|proc_open)\s*\(\s*\$_(GET|POST|REQUEST|COOKIE|SERVER)\b'
     scope: line
   message: '{package} passes request data straight into code or command execution (web shell) in {file}'
+
+- id: dynamic-code/java-runtime-code
+  title: Loads or evaluates code at runtime
+  category: dynamic-code
+  severity: medium
+  languages: [java]
+  match:
+    any:
+      - regex: '\.getEngineByName\(|\bnew\s+ScriptEngineManager\('
+      - regex: '\bdefineClass\(|\bnew\s+URLClassLoader\('
+    scope: line
+  message: '{package} loads classes or evaluates scripts at runtime in {file}'

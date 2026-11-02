@@ -85,3 +85,15 @@
       - regex: '\bhttp\.(Post|PostForm|Get|Head|NewRequest(WithContext)?)\(|\bnet\.Dial(Timeout)?\(|\.Do\(\s*req\b'
     scope: file
   message: '{package} makes network requests from an init() function in {file}, which runs on import'
+
+- id: network/java-jndi-remote-lookup
+  title: Looks up remote JNDI objects
+  category: network
+  severity: medium
+  languages: [java]
+  match:
+    all:
+      - regex: '\.lookup\('
+      - regex: '"(ldap|ldaps|rmi|iiop)://'
+    scope: file
+  message: '{package} performs JNDI lookups against remote ldap/rmi URLs in {file}, which can load remote code'

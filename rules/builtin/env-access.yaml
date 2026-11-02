@@ -69,3 +69,14 @@
       - regex: '\b(json_encode|serialize|var_export|print_r)\(\s*\$_(ENV|SERVER)\b'
     scope: line
   message: '{package} reads all environment variables in {file}'
+
+- id: env-access/java-getenv-all
+  title: Reads all environment variables
+  category: env-access
+  severity: low
+  languages: [java]
+  match:
+    any:
+      - regex: '\bSystem\.getenv\(\s*\)'
+    scope: line
+  message: '{package} reads all environment variables in {file}'
