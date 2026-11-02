@@ -42,7 +42,164 @@
         "title": "Scan Workspace",
         "category": "DepThreat"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "Deep Threat Analytics",
+      "properties": {
+        "depthreat.scanTransitive": {
+          "type": "boolean",
+          "default": true,
+          "order": 1,
+          "markdownDescription": "Also scan dependencies of your dependencies (transitive dependencies)."
+        },
+        "depthreat.includeDevDependencies": {
+          "type": "boolean",
+          "default": false,
+          "order": 2,
+          "markdownDescription": "Scan development and test dependencies (`devDependencies`, `requirements-dev.txt`, Poetry dev groups, …)."
+        },
+        "depthreat.minSeverity": {
+          "type": "string",
+          "enum": [
+            "info",
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ],
+          "default": "low",
+          "order": 3,
+          "markdownDescription": "Hide findings below this severity."
+        },
+        "depthreat.severityMapping": {
+          "type": "object",
+          "order": 4,
+          "properties": {
+            "info": {
+              "type": "string",
+              "enum": [
+                "error",
+                "warning",
+                "information",
+                "hint"
+              ]
+            },
+            "low": {
+              "type": "string",
+              "enum": [
+                "error",
+                "warning",
+                "information",
+                "hint"
+              ]
+            },
+            "medium": {
+              "type": "string",
+              "enum": [
+                "error",
+                "warning",
+                "information",
+                "hint"
+              ]
+            },
+            "high": {
+              "type": "string",
+              "enum": [
+                "error",
+                "warning",
+                "information",
+                "hint"
+              ]
+            },
+            "critical": {
+              "type": "string",
+              "enum": [
+                "error",
+                "warning",
+                "information",
+                "hint"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "default": {
+            "critical": "error",
+            "high": "error",
+            "medium": "warning",
+            "low": "information",
+            "info": "hint"
+          },
+          "markdownDescription": "How findings of each severity appear in the Problems panel and editor."
+        },
+        "depthreat.exclude": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "order": 5,
+          "default": [
+            "**/node_modules/**",
+            "**/.venv/**",
+            "**/venv/**",
+            "**/site-packages/**"
+          ],
+          "markdownDescription": "Glob patterns for manifest files to skip, e.g. `**/test/**/package.json`. Use `/` as the path separator on every platform."
+        },
+        "depthreat.maxFileSizeKB": {
+          "type": "number",
+          "default": 1024,
+          "minimum": 1,
+          "maximum": 102400,
+          "order": 6,
+          "markdownDescription": "Skip dependency files larger than this (in KB)."
+        },
+        "depthreat.maxFilesPerPackage": {
+          "type": "number",
+          "default": 2000,
+          "minimum": 1,
+          "maximum": 100000,
+          "order": 7,
+          "markdownDescription": "Maximum number of files scanned per package."
+        },
+        "depthreat.concurrency": {
+          "type": "number",
+          "default": 4,
+          "minimum": 1,
+          "maximum": 32,
+          "order": 8,
+          "markdownDescription": "Number of packages scanned in parallel."
+        },
+        "depthreat.rulesPaths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "scope": "machine-overridable",
+          "order": 9,
+          "markdownDescription": "Extra folders containing custom rule files (`*.yaml`). Rules in `.depthreat/rules/` are always loaded. In untrusted workspaces only your user setting is used."
+        },
+        "depthreat.python.interpreterPath": {
+          "type": "string",
+          "default": "",
+          "scope": "machine-overridable",
+          "order": 10,
+          "markdownDescription": "Python interpreter used to locate `site-packages` when no virtual environment (`.venv`, `venv`, `env`) is found. It runs in isolated mode (`-I`) and only in trusted workspaces."
+        },
+        "depthreat.online.osv.enabled": {
+          "type": "boolean",
+          "default": false,
+          "order": 11,
+          "markdownDescription": "**Off by default.** Look up known vulnerabilities on [OSV.dev](https://osv.dev). When enabled, the **name, ecosystem and version** of each dependency are sent to `api.osv.dev`. No source code, file paths or project names are sent."
+        },
+        "depthreat.online.registryMetadata.enabled": {
+          "type": "boolean",
+          "default": false,
+          "order": 12,
+          "markdownDescription": "**Off by default.** Check package age, deprecation, yanked releases and maintainer changes. When enabled, dependency **names** are sent to `registry.npmjs.org` and `pypi.org`. No source code, file paths or project names are sent."
+        }
+      }
+    }
   },
   "scripts": {
     "build": "node esbuild.mjs",
