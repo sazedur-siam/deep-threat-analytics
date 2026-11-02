@@ -18,3 +18,4 @@ eslint.config.mjs
 .prettierignore
 CLAUDE.md
 .claude/**
+media/icon.svg
