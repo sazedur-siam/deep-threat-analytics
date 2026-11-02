@@ -1,0 +1,37 @@
+# Reading environment variables, where secrets usually live.
+- id: env-access/serialize-env
+  title: Serializes all environment variables
+  category: env-access
+  severity: medium
+  languages: [javascript, typescript, python]
+  match:
+    any:
+      - regex: 'JSON\.stringify\(\s*process\.env\s*[,)]'
+      - regex: 'json\.dumps\(\s*(dict\(\s*)?os\.environ'
+      - regex: '\bstr\(\s*os\.environ\s*\)'
+    scope: line
+  message: '{package} serializes the whole environment in {file}'
+
+- id: env-access/enumerate-env
+  title: Enumerates environment variables
+  category: env-access
+  severity: low
+  languages: [javascript, typescript, python]
+  match:
+    any:
+      - regex: 'Object\.(keys|entries|values)\(\s*process\.env\s*\)'
+      - regex: 'dict\(\s*os\.environ\s*\)|os\.environ\.items\(\s*\)'
+    scope: line
+  message: '{package} enumerates environment variables in {file}'
+
+- id: env-access/token-variables
+  title: Reads secret-looking environment variables
+  category: env-access
+  severity: low
+  languages: [javascript, typescript, python]
+  match:
+    any:
+      - regex: 'process\.env(\.|\[\s*[''"`])\w*(TOKEN|SECRET|PASSWORD|PRIVATE_KEY|ACCESS_KEY)\b'
+      - regex: 'os\.(environ(\.get\s*\(|\[)|getenv\s*\()\s*[''"]\w*(TOKEN|SECRET|PASSWORD|PRIVATE_KEY|ACCESS_KEY)\b'
+    scope: line
+  message: '{package} reads secret-looking environment variables in {file}'
