@@ -1,0 +1,22 @@
+# Cryptocurrency mining hidden inside a dependency.
+- id: crypto-mining/stratum-pool
+  title: Connects to a mining pool
+  category: crypto-mining
+  severity: critical
+  languages: ['*']
+  match:
+    any:
+      - regex: 'stratum\+(tcp|ssl|tls)://'
+    scope: line
+  message: '{package} connects to a cryptocurrency mining pool in {file}'
+
+- id: crypto-mining/miner
+  title: References cryptocurrency miner software
+  category: crypto-mining
+  severity: high
+  languages: ['*']
+  match:
+    any:
+      - regex: '\b(xmrig|coinhive|minergate|xmr-stak|cpuminer|nbminer|lolminer)\b'
+    scope: line
+  message: '{package} references cryptocurrency mining software in {file}'
