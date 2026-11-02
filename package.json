@@ -76,5 +76,12 @@
     "typescript": "~6.0",
     "typescript-eslint": "^8.72.1",
     "vitest": "^5.0.5"
+  },
+  "pricing": "Free",
+  "preview": "true",
+  "qna": "marketplace",
+  "galleryBanner": {
+    "color": "#1b1f24",
+    "theme": "dark"
   }
 }
