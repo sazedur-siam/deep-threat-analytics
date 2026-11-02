@@ -17,3 +17,4 @@ eslint.config.mjs
 .gitignore
 .prettierignore
 CLAUDE.md
+.claude/**

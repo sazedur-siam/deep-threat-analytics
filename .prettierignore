@@ -4,3 +4,4 @@ coverage
 .vscode-test
 test/fixtures
 package-lock.json
+.claude
