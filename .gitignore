@@ -5,3 +5,4 @@ coverage/
 .vscode-test/
 *.vsix
 .DS_Store
+!test/fixtures/**/node_modules/
