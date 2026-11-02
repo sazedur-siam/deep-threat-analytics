@@ -11,6 +11,8 @@ const ctx = await esbuild.context({
   target: 'node20',
   outfile: 'dist/extension.js',
   external: ['vscode'],
+  // Prefer ESM builds: jsonc-parser's UMD build uses dynamic requires esbuild cannot bundle.
+  mainFields: ['module', 'main'],
   sourcemap: !production,
   minify: production,
   logLevel: 'info',
