@@ -57,7 +57,8 @@
     "format:check": "prettier --check .",
     "compile-tests": "tsc -p .",
     "pretest:integration": "npm run build && npm run compile-tests",
-    "test:integration": "vscode-test"
+    "test:integration": "vscode-test",
+    "check": "npm run typecheck && npm run lint && npm run format:check && npm run test:coverage"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
