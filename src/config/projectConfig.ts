@@ -189,7 +189,9 @@ function appendUnique(text: string, keys: string[], value: unknown): string {
   const node = doc.createNode(value);
   if (typeof value === 'object') (node as { flow?: boolean }).flow = true;
   seq.add(node);
-  return doc.toString();
+  // Block list with one-line flow entries, never folded: `- { package: x, rule: y }`.
+  seq.flow = false;
+  return doc.toString({ lineWidth: 0 });
 }
 
 /** Comment-preserving edits used by Quick Fixes. Each returns the new file text. */
