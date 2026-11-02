@@ -2,6 +2,7 @@ import { readFile as fsReadFile } from 'node:fs/promises';
 import * as path from 'node:path';
 import picomatch from 'picomatch';
 import { makeFindingId, trimEvidence } from '../core/findings';
+import { splitLines } from '../core/text';
 import type { Finding, Language, ResolvedDep } from '../core/types';
 import type { CompiledRule } from '../rules/loader';
 import { detectObfuscation } from './obfuscation';
@@ -38,10 +39,6 @@ interface SourceFile {
 }
 
 const COMMENT_LINE = /^\s*(\/\/|#|\*|\/\*|<!--)/;
-
-export function splitLines(text: string): string[] {
-  return text.split('\n').map((l) => (l.endsWith('\r') ? l.slice(0, -1) : l));
-}
 
 function firstHit(re: RegExp, line: string): { col: number; length: number } | undefined {
   re.lastIndex = 0;

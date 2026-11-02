@@ -3,11 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { npmAdapter } from '../../../src/adapters/npm';
 import type { Language, ResolvedDep } from '../../../src/core/types';
 import { compileRule, parseRuleFile, type CompiledRule } from '../../../src/rules/loader';
-import {
-  MAX_FINDINGS_PER_RULE_PER_FILE,
-  scanPackageCode,
-  splitLines,
-} from '../../../src/scanners/codeScanner';
+import { MAX_FINDINGS_PER_RULE_PER_FILE, scanPackageCode } from '../../../src/scanners/codeScanner';
+import { splitLines } from '../../../src/core/text';
 
 const dep: ResolvedDep = {
   ecosystem: 'npm',

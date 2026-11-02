@@ -1,6 +1,6 @@
 import * as path from 'node:path';
 import { parse as parseToml } from 'smol-toml';
-import { splitLines } from '../../scanners/codeScanner';
+import { splitLines } from '../../core/text';
 import type { DeclaredDep } from '../../core/types';
 import { normalizePythonName, parseIgnoreMarker, parseRequirement } from './names';
 

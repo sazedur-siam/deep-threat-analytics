@@ -48,3 +48,8 @@ export class LineIndex {
 export function lineRange(line: number, length: number): SourceRange {
   return { startLine: line, startCol: 0, endLine: line, endCol: length };
 }
+
+/** Split text into lines, accepting both LF and CRLF endings. */
+export function splitLines(text: string): string[] {
+  return text.split('\n').map((l) => (l.endsWith('\r') ? l.slice(0, -1) : l));
+}
