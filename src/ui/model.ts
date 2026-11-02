@@ -222,3 +222,40 @@ export function anchorHover(anchor: DepAnchor, max = 8): string {
   if (anchor.policies.length) lines.push('', `Violates policy: ${anchor.policies.join(', ')}`);
   return lines.join('\n');
 }
+
+/**
+ * Text edit that bumps a dependency's version spec to `fixed` on its manifest line, keeping the
+ * range style (`^`/`~` for npm, `==` pins for pip). Undefined when the spec can't be safely edited.
+ */
+export function fixedVersionEdit(
+  line: string,
+  dep: { name: string; range: { startCol: number; endCol: number } },
+  fixed: string,
+  manifestPath: string,
+): { startCol: number; endCol: number; newText: string } | undefined {
+  if (manifestPath.endsWith('package.json')) {
+    const after = line.slice(dep.range.endCol);
+    const m = /^"\s*:\s*"([^"]*)"/.exec(after);
+    if (!m) return undefined;
+    const spec = m[1] as string;
+    if (!/^[\^~]?\d/.test(spec)) return undefined;
+    const prefix = /^[\^~]/.test(spec) ? spec[0] : '';
+    const start = dep.range.endCol + m[0].length - spec.length - 1;
+    return { startCol: start, endCol: start + spec.length, newText: `${prefix}${fixed}` };
+  }
+  if (/requirements[^/\\]*\.txt$/.test(manifestPath)) {
+    const rest = line.slice(dep.range.endCol);
+    const extras = /^\s*\[[^\]]*\]/.exec(rest)?.[0] ?? '';
+    const specStart = dep.range.endCol + extras.length;
+    const specText = /^[^;#]*/.exec(line.slice(specStart))?.[0] ?? '';
+    const spec = specText.trimEnd();
+    if (spec.trim().startsWith('@')) return undefined;
+    const pinned = /^\s*===?/.test(spec);
+    return {
+      startCol: specStart,
+      endCol: specStart + spec.length,
+      newText: `${pinned ? '==' : '>='}${fixed}`,
+    };
+  }
+  return undefined;
+}
