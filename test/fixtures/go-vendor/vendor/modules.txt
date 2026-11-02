@@ -1,0 +1,3 @@
+# github.com/vendored/shell v0.1.0
+## explicit
+github.com/vendored/shell
