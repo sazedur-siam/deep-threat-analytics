@@ -13,7 +13,8 @@
     "forceConsistentCasingInFileNames": true,
     "sourceMap": true,
     "outDir": "out",
-    "rootDir": "."
+    "rootDir": ".",
+    "types": ["node", "mocha"]
   },
   "include": ["src", "test"],
   "exclude": ["node_modules", "dist", "out", "test/fixtures"]

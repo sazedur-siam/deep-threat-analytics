@@ -54,13 +54,19 @@
     "test:coverage": "vitest run --coverage",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "compile-tests": "tsc -p .",
+    "pretest:integration": "npm run build && npm run compile-tests",
+    "test:integration": "vscode-test"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@types/mocha": "^10.0.10",
     "@types/node": "^22.20.5",
     "@types/vscode": "^1.90.0",
     "@vitest/coverage-v8": "^5.0.5",
+    "@vscode/test-cli": "^0.0.15",
+    "@vscode/test-electron": "^3.1.0",
     "esbuild": "^0.28.2",
     "eslint": "^10.14.0",
     "eslint-config-prettier": "^10.1.8",
