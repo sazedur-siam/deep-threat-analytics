@@ -1,4 +1,10 @@
-import { findNodeAtLocation, getNodeValue, parseTree, type Node } from 'jsonc-parser';
+import {
+  findNodeAtLocation,
+  getNodeValue,
+  parseTree,
+  type Node,
+  type ParseError,
+} from 'jsonc-parser';
 import { LineIndex } from '../../core/text';
 import type { DeclaredDep } from '../../core/types';
 
@@ -30,7 +36,7 @@ function readInlineIgnores(root: Node): Map<string, string[] | 'all'> {
  * inside its quotes. Malformed JSON yields an empty list.
  */
 export function parsePackageJson(manifestPath: string, text: string): DeclaredDep[] {
-  const errors: { error: number }[] = [];
+  const errors: ParseError[] = [];
   const root = parseTree(text, errors, { allowTrailingComma: true });
   if (!root || root.type !== 'object' || errors.length) return [];
   const lines = new LineIndex(text);
