@@ -1,0 +1,26 @@
+# Making code survive reboots or new shells.
+- id: persistence/shell-profile
+  title: Modifies shell startup files
+  category: persistence
+  severity: medium
+  languages: ['*']
+  match:
+    all:
+      - regex: '\.(bashrc|bash_profile|zshrc|zprofile|profile)\b|config[/\\]+fish[/\\]+config\.fish'
+      - regex: '\bappendFile(Sync)?\s*\(|\bwriteFile(Sync)?\s*\(|createWriteStream\s*\(|open\s*\([^)]*[''"]a\+?[''"]|>>'
+    scope: file
+  message: '{package} writes to shell startup files in {file}'
+
+- id: persistence/autostart
+  title: Installs itself to run at startup
+  category: persistence
+  severity: high
+  languages: ['*']
+  match:
+    any:
+      - regex: 'Library[/\\]+LaunchAgents|Library[/\\]+LaunchDaemons'
+      - regex: '\.config[/\\]+systemd[/\\]+user|systemctl\s+(--user\s+)?enable'
+      - regex: '\bcrontab\s+-|/etc/cron\.'
+      - regex: 'CurrentVersion\\+Run\b|Start Menu\\+Programs\\+Startup|schtasks(\.exe)?\s+/create'
+    scope: line
+  message: '{package} sets up code to run at login or on a schedule in {file}'
