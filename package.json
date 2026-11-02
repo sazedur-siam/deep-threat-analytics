@@ -51,14 +51,17 @@
     "vscode:prepublish": "node esbuild.mjs --production",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "devDependencies": {
     "@types/node": "^22.20.5",
     "@types/vscode": "^1.90.0",
     "@vitest/coverage-v8": "^5.0.5",
     "esbuild": "^0.28.2",
-    "typescript": "^7.0.2",
+    "typescript": "~6.0",
     "vitest": "^5.0.5"
   }
 }
