@@ -49,10 +49,10 @@ const HOMOGLYPHS: Array<[RegExp, string]> = [
 /** Why `name` looks like an imitation of `target`, or undefined. */
 function squatReason(name: string, target: string): string | undefined {
   if (name === target || target.length < 4) return undefined;
+  if (name.replace(LANG_AFFIX, '') === target) return 'adds a language prefix or suffix';
   // Sub-packages and plugins of a popular package are not squats: lodash.merge, react-dom.
   if (name.startsWith(`${target}-`) || name.startsWith(`${target}.`)) return undefined;
   if (stripSeparators(name) === stripSeparators(target)) return 'only the separators differ';
-  if (name.replace(LANG_AFFIX, '') === target) return 'adds a language prefix or suffix';
   let glyphs = name;
   for (const [re, ch] of HOMOGLYPHS) glyphs = glyphs.replace(re, ch);
   if (glyphs !== name && glyphs === target) return 'swaps look-alike characters';
