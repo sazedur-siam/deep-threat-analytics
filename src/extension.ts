@@ -2,6 +2,7 @@ import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { ScanCache } from './core/cache';
 import type { ScanResult } from './core/engine';
+import { createPackageChecks } from './scanners/packageChecks';
 import { registerCommands } from './ui/commands';
 import { DiagnosticsPresenter, registerCodeActions, registerHover } from './ui/diagnostics';
 import { buildTree, summarizeScan, type TreeNode } from './ui/model';
@@ -18,7 +19,9 @@ export interface DepThreatApi {
 export function activate(context: vscode.ExtensionContext): DepThreatApi {
   const output = vscode.window.createOutputChannel('Deep Threat Analytics');
   const cache = new ScanCache(path.join(context.globalStorageUri.fsPath, 'scan-cache.json'));
-  const service = new ScanService(context, output, cache);
+  const service = new ScanService(context, output, cache, (settings, adapters) =>
+    createPackageChecks(settings, adapters, context.asAbsolutePath('data')),
+  );
   const diagnostics = new DiagnosticsPresenter();
   const tree = new FindingsTree();
   const view = vscode.window.createTreeView('depthreat.findings', {
