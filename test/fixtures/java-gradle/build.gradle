@@ -1,0 +1,14 @@
+plugins {
+    id 'java'
+}
+
+def libVersion = '9.9'
+
+dependencies {
+    implementation 'com.evil:telemetry:1.0.0'
+    implementation group: 'org.clean', name: 'util', version: '1.5.0' // depthreat-ignore
+    implementation "org.dynamic:lib:$libVersion"
+    implementation platform('org.springframework.boot:spring-boot-dependencies:3.2.0')
+    implementation project(':shared')
+    testImplementation 'junit:junit:4.13.2'
+}
