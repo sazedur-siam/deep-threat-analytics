@@ -30,7 +30,7 @@ Deep Threat Analytics looks at the code itself, entirely on your machine. When y
 | Exec          | `child_process.exec`, `subprocess` with `shell=True`, reverse-shell patterns                              |
 | Dynamic code  | `eval` / `new Function` / `exec` on non-literal input, decode-and-execute, `marshal.loads`, `vm` contexts |
 | Obfuscation   | High-entropy base64/hex payloads that get decoded and executed, javascript-obfuscator signatures          |
-| Install hooks | npm `preinstall` / `install` / `postinstall` scripts, code in `setup.py`, executable `.pth` files         |
+| Install hooks | npm lifecycle scripts, code in `setup.py`, executable `.pth` files, Rust `build.rs` scripts               |
 | Network       | Webhook, paste and tunneling endpoints, DNS exfiltration, hardcoded IP addresses, public-IP lookups       |
 | Persistence   | Writes to shell profiles, crontab, LaunchAgents, systemd units, Windows Run keys                          |
 | Crypto mining | Mining pool URLs, miner binaries, crypto-wallet file access                                               |
