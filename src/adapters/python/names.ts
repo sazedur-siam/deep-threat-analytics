@@ -1,3 +1,5 @@
+export { parseIgnoreMarker } from '../ignore';
+
 /** PEP 503 normalized project name: runs of `-`, `_`, `.` collapse to `-`, lowercased. */
 export function normalizePythonName(name: string): string {
   return name.replace(/[-_.]+/g, '-').toLowerCase();
@@ -5,23 +7,6 @@ export function normalizePythonName(name: string): string {
 
 /** Leading PEP 508 project name (letters, digits, `-`, `_`, `.`; starts/ends alphanumeric). */
 export const PEP508_NAME = /^[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?/;
-
-const IGNORE_MARKER = /depthreat-ignore(?:\[([^\]]*)\])?/;
-
-/**
- * Parse an inline ignore marker from a comment: `depthreat-ignore` ignores every rule,
- * `depthreat-ignore[rule/a, obfuscation/*]` ignores the listed rule ids/globs.
- */
-export function parseIgnoreMarker(comment: string): string[] | 'all' | undefined {
-  const m = IGNORE_MARKER.exec(comment);
-  if (!m) return undefined;
-  if (m[1] === undefined) return 'all';
-  const list = m[1]
-    .split(',')
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0);
-  return list.length > 0 ? list : 'all';
-}
 
 /** Extract the `==` pinned version from a specifier like `==1.2.3` or `>=1,==1.2.3`. */
 export function pinnedVersion(spec: string): string | undefined {
