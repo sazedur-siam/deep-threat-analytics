@@ -40,7 +40,189 @@
       {
         "command": "depthreat.scanWorkspace",
         "title": "Scan Workspace",
+        "category": "DepThreat",
+        "icon": "$(shield)"
+      },
+      {
+        "command": "depthreat.scanManifest",
+        "title": "Scan This Manifest",
+        "category": "DepThreat",
+        "icon": "$(shield)"
+      },
+      {
+        "command": "depthreat.clearCache",
+        "title": "Clear Scan Cache",
+        "category": "DepThreat",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "depthreat.createConfig",
+        "title": "Create or Open Project Config",
         "category": "DepThreat"
+      },
+      {
+        "command": "depthreat.openRulesFolder",
+        "title": "Open Custom Rules",
+        "category": "DepThreat"
+      },
+      {
+        "command": "depthreat.exportFindings",
+        "title": "Export Findings (JSON)",
+        "category": "DepThreat",
+        "icon": "$(export)"
+      },
+      {
+        "command": "depthreat.openFinding",
+        "title": "Open Code",
+        "category": "DepThreat"
+      },
+      {
+        "command": "depthreat.revealPackage",
+        "title": "Show in Sidebar",
+        "category": "DepThreat"
+      },
+      {
+        "command": "depthreat.ignoreRule",
+        "title": "Ignore This Rule for the Package",
+        "category": "DepThreat"
+      },
+      {
+        "command": "depthreat.ignoreFinding",
+        "title": "Ignore This Finding",
+        "category": "DepThreat"
+      },
+      {
+        "command": "depthreat.allowlistPackage",
+        "title": "Allowlist Package",
+        "category": "DepThreat"
+      },
+      {
+        "command": "depthreat.allowlistRule",
+        "title": "Turn Off This Rule Everywhere",
+        "category": "DepThreat"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "depthreat.openFinding",
+          "when": "false"
+        },
+        {
+          "command": "depthreat.revealPackage",
+          "when": "false"
+        },
+        {
+          "command": "depthreat.ignoreRule",
+          "when": "false"
+        },
+        {
+          "command": "depthreat.ignoreFinding",
+          "when": "false"
+        },
+        {
+          "command": "depthreat.allowlistPackage",
+          "when": "false"
+        },
+        {
+          "command": "depthreat.allowlistRule",
+          "when": "false"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "depthreat.scanManifest",
+          "when": "resourceFilename == package.json || resourceFilename == pyproject.toml || resourceFilename =~ /^requirements.*\\.txt$/",
+          "group": "depthreat@1"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "depthreat.scanManifest",
+          "when": "resourceFilename == package.json || resourceFilename == pyproject.toml || resourceFilename =~ /^requirements.*\\.txt$/",
+          "group": "depthreat@1"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "depthreat.scanManifest",
+          "when": "resourceFilename == package.json || resourceFilename == pyproject.toml || resourceFilename =~ /^requirements.*\\.txt$/",
+          "group": "navigation@90"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "depthreat.scanWorkspace",
+          "when": "view == depthreat.findings",
+          "group": "navigation@1"
+        },
+        {
+          "command": "depthreat.exportFindings",
+          "when": "view == depthreat.findings",
+          "group": "navigation@2"
+        },
+        {
+          "command": "depthreat.clearCache",
+          "when": "view == depthreat.findings",
+          "group": "1_more@1"
+        },
+        {
+          "command": "depthreat.createConfig",
+          "when": "view == depthreat.findings",
+          "group": "1_more@2"
+        },
+        {
+          "command": "depthreat.openRulesFolder",
+          "when": "view == depthreat.findings",
+          "group": "1_more@3"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "depthreat.ignoreRule",
+          "when": "view == depthreat.findings && viewItem == finding",
+          "group": "1_ignore@1"
+        },
+        {
+          "command": "depthreat.ignoreFinding",
+          "when": "view == depthreat.findings && viewItem == finding",
+          "group": "1_ignore@2"
+        },
+        {
+          "command": "depthreat.allowlistRule",
+          "when": "view == depthreat.findings && viewItem == finding",
+          "group": "1_ignore@3"
+        },
+        {
+          "command": "depthreat.allowlistPackage",
+          "when": "view == depthreat.findings && viewItem == package",
+          "group": "1_ignore@1"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "depthreat",
+          "title": "Deep Threat Analytics",
+          "icon": "media/activity-bar.svg"
+        }
+      ]
+    },
+    "views": {
+      "depthreat": [
+        {
+          "id": "depthreat.findings",
+          "name": "Findings",
+          "icon": "media/activity-bar.svg",
+          "contextualTitle": "Deep Threat Analytics"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "depthreat.findings",
+        "contents": "Scan the source code of your installed dependencies for data leaks, credential theft, install hooks and other risky behavior. Everything runs locally.\n[Scan Workspace](command:depthreat.scanWorkspace)\nCustomize with [project config](command:depthreat.createConfig) or [custom rules](command:depthreat.openRulesFolder)."
       }
     ],
     "configuration": {
