@@ -1,0 +1,85 @@
+# Turning data into running code.
+- id: dynamic-code/eval-non-literal
+  title: Evaluates dynamically built code
+  category: dynamic-code
+  severity: medium
+  languages: [javascript, typescript]
+  match:
+    any:
+      - regex: '(^|[^.\w])eval\s*\(\s*[^''"`)\s]'
+      - regex: '\bnew\s+Function\s*\(\s*[^''"`)\s]'
+    scope: line
+  message: '{package} evaluates code that is not a fixed string in {file}'
+
+- id: dynamic-code/vm-run
+  title: Runs code in a VM context
+  category: dynamic-code
+  severity: medium
+  languages: [javascript, typescript]
+  match:
+    any:
+      - regex: '\bvm\.(runInNewContext|runInThisContext|runInContext|compileFunction)\s*\('
+      - regex: '\bnew\s+vm\.Script\s*\('
+    scope: line
+  message: '{package} compiles and runs code with the vm module in {file}'
+
+- id: dynamic-code/module-compile
+  title: Compiles a module from a string
+  category: dynamic-code
+  severity: medium
+  languages: [javascript, typescript]
+  match:
+    any:
+      - regex: '\._compile\s*\(\s*[^)]'
+    scope: line
+  message: '{package} compiles module source from a string in {file}'
+
+- id: dynamic-code/decode-and-execute
+  title: Decodes and executes hidden code
+  category: dynamic-code
+  severity: critical
+  languages: [javascript, typescript, python]
+  match:
+    any:
+      - regex: '\b(eval|Function)\s*\(\s*(Buffer\.from|atob\s*\(|unescape\s*\(|decodeURIComponent\s*\()'
+      - regex: '\b(exec|eval)\s*\(\s*(base64\.|b64decode|zlib\.decompress|marshal\.loads|codecs\.decode|bytes\.fromhex|__import__\s*\(\s*[''"](base64|zlib|marshal|codecs)[''"])'
+      - regex: '\bexec\s*\(\s*compile\s*\(\s*(base64|zlib|marshal|codecs|bytes)'
+    scope: line
+  message: '{package} decodes data and executes it as code in {file}'
+
+- id: dynamic-code/python-exec-non-literal
+  title: Executes dynamically built code
+  category: dynamic-code
+  severity: medium
+  languages: [python]
+  match:
+    any:
+      - regex: '(^|[^.\w])(exec|eval)\s*\(\s*[^''"\s)]'
+    not:
+      # setup.py commonly does exec(open("pkg/version.py").read()) to read __version__.
+      - regex: '\bexec\s*\(\s*open\s*\('
+      - regex: '\b(exec|eval)\s*\(\s*(base64\.|b64decode|zlib|marshal|codecs|bytes\.fromhex|__import__|compile\s*\(\s*(base64|zlib|marshal|codecs|bytes))'
+    scope: line
+  message: '{package} executes code that is not a fixed string in {file}'
+
+- id: dynamic-code/marshal-loads
+  title: Loads marshalled bytecode
+  category: dynamic-code
+  severity: medium
+  languages: [python]
+  match:
+    any:
+      - regex: '\bmarshal\.loads\s*\('
+    scope: line
+  message: '{package} loads marshalled Python bytecode in {file}'
+
+- id: dynamic-code/python-hidden-import
+  title: Imports sensitive modules indirectly
+  category: dynamic-code
+  severity: medium
+  languages: [python]
+  match:
+    any:
+      - regex: '__import__\s*\(\s*[''"](os|subprocess|socket|base64|zlib|marshal|codecs|ctypes|pty)[''"]\s*\)'
+    scope: line
+  message: '{package} hides imports of sensitive modules behind __import__ in {file}'
