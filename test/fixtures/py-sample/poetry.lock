@@ -1,0 +1,11 @@
+[[package]]
+name = "evil-exfil"
+version = "1.0.0"
+
+[[package]]
+name = "clean-lib"
+version = "2.0.9"
+
+[[package]]
+name = "not-installed-py"
+version = "9.9.9"

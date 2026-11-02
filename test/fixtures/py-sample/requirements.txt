@@ -1,0 +1,9 @@
+# runtime dependencies
+evil-exfil==1.0.0
+evil_setup==0.3.0  # depthreat-ignore[exec/python-shell]
+clean-lib>=2 \
+    ; python_version >= "3.8"
+not-installed-py==9.9.9
+--index-url https://pypi.example.invalid/simple
+-r other-requirements.txt
+./local-package

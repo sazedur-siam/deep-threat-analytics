@@ -1,0 +1,23 @@
+[project]
+name = "py-sample"
+version = "0.1.0"
+dependencies = [
+  "evil-exfil==1.0.0",
+  "clean-lib>=2",  # depthreat-ignore
+]
+
+[project.optional-dependencies]
+socks = ["requests[socks]>=2.0; python_version > '3.8'"]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+old-egg = { version = "1.0", optional = true }
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0"
+
+[tool.poetry.group.docs.dependencies.sphinx]
+version = "^7.0"
+
+[dependency-groups]
+lint = ["ruff>=0.4"]
