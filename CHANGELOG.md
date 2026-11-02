@@ -14,6 +14,9 @@ All notable changes to this extension are documented here. The format follows
 - Rust support: `Cargo.toml` and `Cargo.lock` parsing (renames, target tables, path crates
   skipped), scanning of crates in `vendor/` or the Cargo registry cache, Rust rules, and
   `build.rs` scripts treated as install hooks.
+- PHP support: `composer.json` and `composer.lock` parsing, scanning of `vendor/`, PHP rules for
+  shell functions, `eval`, decode-and-execute and web shells, and Composer plugins treated as
+  install hooks.
 
 ## [0.1.0] - 2026-11-02
 
