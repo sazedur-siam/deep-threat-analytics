@@ -6,30 +6,14 @@ All notable changes to this extension are documented here. The format follows
 
 ## [Unreleased]
 
-### Added
-
-- Go support: `go.mod` parsing (including `replace` and `// indirect`), scanning of modules in
-  `vendor/` or the module cache, and Go rules for shell execution, environment exfiltration and
-  network calls from `init()` functions.
-- Rust support: `Cargo.toml` and `Cargo.lock` parsing (renames, target tables, path crates
-  skipped), scanning of crates in `vendor/` or the Cargo registry cache, Rust rules, and
-  `build.rs` scripts treated as install hooks.
-- PHP support: `composer.json` and `composer.lock` parsing, scanning of `vendor/`, PHP rules for
-  shell functions, `eval`, decode-and-execute and web shells, and Composer plugins treated as
-  install hooks.
-- Java support: `pom.xml` (properties, managed versions, exclusions) and `build.gradle(.kts)`
-  parsing, code scanning of `-sources.jar` files from the Maven repository or Gradle cache (safe
-  extraction with zip-slip and size guards), transitive dependencies from dependency POMs, and Java
-  rules for processes, shells, environment exfiltration, runtime code loading and JNDI lookups.
-
 ## [0.1.0] - 2026-11-02
 
 First pre-release.
 
 ### Added
 
-- Local scanning of installed dependency source code for npm, pnpm, Yarn (node_modules layouts)
-  and Python (virtual environments, pip, Poetry, uv).
+- Local scanning of installed dependency source code for npm, pnpm, Yarn (node_modules layouts),
+  Python (virtual environments, pip, Poetry, uv), Go, Rust, PHP and Java.
 - Built-in rules for exfiltration, credential and secret-file access, environment dumps, shell
   execution, reverse shells, dynamic code, persistence, crypto mining and data-collection
   endpoints, plus heuristics for obfuscated payloads.
@@ -44,3 +28,16 @@ First pre-release.
   and policy gates. Custom rules in `.depthreat/rules/*.yaml`. Inline ignores in manifests.
 - Per-package result cache, JSON export, and Workspace Trust support (repository config and rules
   are ignored in untrusted workspaces).
+- Go support: `go.mod` parsing (including `replace` and `// indirect`), scanning of modules in
+  `vendor/` or the module cache, and Go rules for shell execution, environment exfiltration and
+  network calls from `init()` functions.
+- Rust support: `Cargo.toml` and `Cargo.lock` parsing (renames, target tables, path crates
+  skipped), scanning of crates in `vendor/` or the Cargo registry cache, Rust rules, and
+  `build.rs` scripts treated as install hooks.
+- PHP support: `composer.json` and `composer.lock` parsing, scanning of `vendor/`, PHP rules for
+  shell functions, `eval`, decode-and-execute and web shells, and Composer plugins treated as
+  install hooks.
+- Java support: `pom.xml` (properties, managed versions, exclusions) and `build.gradle(.kts)`
+  parsing, code scanning of `-sources.jar` files from the Maven repository or Gradle cache (safe
+  extraction with zip-slip and size guards), transitive dependencies from dependency POMs, and Java
+  rules for processes, shells, environment exfiltration, runtime code loading and JNDI lookups.
