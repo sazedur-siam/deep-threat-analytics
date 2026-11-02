@@ -1,0 +1,77 @@
+# Correlated behavior: collecting sensitive data AND sending it somewhere in the same file.
+- id: exfiltration/env-to-network
+  title: Sends environment variables over the network
+  category: exfiltration
+  severity: high
+  languages: [javascript, typescript]
+  match:
+    all:
+      - regex: 'JSON\.stringify\(\s*process\.env\s*[,)]|Object\.(keys|entries|values)\(\s*process\.env\s*\)'
+      - regex: '\bhttps?\.(request|get)\s*\(|\bfetch\s*\(|\baxios\b|\bgot\s*\(|node-fetch|XMLHttpRequest|\bnet\.connect\s*\(|\bdns\.resolve'
+    scope: file
+  message: '{package} collects environment variables and sends network requests in {file}'
+
+- id: exfiltration/python-env-to-network
+  title: Sends environment variables over the network
+  category: exfiltration
+  severity: high
+  languages: [python]
+  match:
+    all:
+      - regex: 'json\.dumps\(\s*(dict\(\s*)?os\.environ|dict\(\s*os\.environ\s*\)|os\.environ\.items\(\s*\)|str\(\s*os\.environ\s*\)'
+      - regex: '\brequests\.(post|get|put)\s*\(|urllib\.request|\burlopen\s*\(|http\.client|socket\.(socket|create_connection)\s*\(|\bhttpx\.'
+    scope: file
+  message: '{package} collects environment variables and sends network requests in {file}'
+
+- id: exfiltration/secret-file-to-network
+  title: Reads credential files and sends network requests
+  category: exfiltration
+  severity: high
+  languages: [javascript, typescript, python]
+  match:
+    all:
+      - regex: '\.ssh[/\\]+id_|\bid_(rsa|ed25519)\b|\.aws[/\\]+credentials|[''"`/\\]\.(npmrc|pypirc|git-credentials|netrc)\b|\.docker[/\\]+config\.json|\.kube[/\\]+config|\bwallet\.dat\b|Login Data|logins\.json'
+      - regex: '\bhttps?\.(request|get)\s*\(|\bfetch\s*\(|\baxios\b|\bgot\s*\(|XMLHttpRequest|\brequests\.(post|get|put)\s*\(|urllib\.request|\burlopen\s*\(|http\.client|\bhttpx\.'
+    not:
+      # The official cloud SDKs read their own credential files and call their own APIs.
+      - regex: 'AWS_SHARED_CREDENTIALS_FILE|AWS_CONFIG_FILE|KUBECONFIG'
+    scope: file
+  message: '{package} reads credential files and sends network requests in {file}'
+
+- id: exfiltration/secret-file-to-webhook
+  title: Sends credential files to a collection endpoint
+  category: exfiltration
+  severity: critical
+  languages: ['*']
+  match:
+    all:
+      - regex: '\.ssh[/\\]+id_|\bid_(rsa|ed25519)\b|\.aws[/\\]+credentials|[''"`/\\]\.(npmrc|pypirc|git-credentials|netrc)\b|\bwallet\.dat\b|Login Data|logins\.json|JSON\.stringify\(\s*process\.env|json\.dumps\(\s*(dict\(\s*)?os\.environ|dict\(\s*os\.environ\s*\)'
+      - regex: 'webhook\.site|discord(app)?\.com/api/webhooks|api\.telegram\.org/bot|pipedream\.net|requestbin|\.oast\.|interact\.sh|transfer\.sh|pastebin\.com'
+    scope: file
+  message: '{package} collects secrets and sends them to a data-collection endpoint in {file}'
+
+- id: exfiltration/homedir-read-and-send
+  title: Reads files from the home directory and sends network requests
+  category: exfiltration
+  severity: medium
+  languages: [javascript, typescript]
+  match:
+    all:
+      - regex: '\bos\.homedir\s*\(\s*\)|process\.env\.(HOME|USERPROFILE)\b'
+      - regex: '\breadFileSync\s*\(|\breadFile\s*\(|createReadStream\s*\(|readdirSync\s*\('
+      - regex: '\bhttps?\.(request|get)\s*\(|\bfetch\s*\(|\baxios\b|\bgot\s*\(|XMLHttpRequest'
+    scope: file
+  message: '{package} reads files under the home directory and sends network requests in {file}'
+
+- id: exfiltration/system-info-beacon
+  title: Sends machine and user details over the network
+  category: exfiltration
+  severity: medium
+  languages: [javascript, typescript, python]
+  match:
+    all:
+      - regex: '\bos\.hostname\s*\(\s*\)|socket\.gethostname\s*\(\s*\)|platform\.node\s*\(\s*\)'
+      - regex: '\bos\.userInfo\s*\(|process\.env\.(USER|USERNAME)\b|getpass\.getuser\s*\(|os\.getlogin\s*\('
+      - regex: '\bhttps?\.(request|get)\s*\(|\bfetch\s*\(|\baxios\b|\bdns\.(resolve|lookup)|\brequests\.(post|get)\s*\(|\burlopen\s*\('
+    scope: file
+  message: '{package} collects hostname and username and sends network requests in {file}'
