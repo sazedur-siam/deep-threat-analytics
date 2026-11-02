@@ -17,6 +17,10 @@ All notable changes to this extension are documented here. The format follows
 - PHP support: `composer.json` and `composer.lock` parsing, scanning of `vendor/`, PHP rules for
   shell functions, `eval`, decode-and-execute and web shells, and Composer plugins treated as
   install hooks.
+- Java support: `pom.xml` (properties, managed versions, exclusions) and `build.gradle(.kts)`
+  parsing, code scanning of `-sources.jar` files from the Maven repository or Gradle cache (safe
+  extraction with zip-slip and size guards), transitive dependencies from dependency POMs, and Java
+  rules for processes, shells, environment exfiltration, runtime code loading and JNDI lookups.
 
 ## [0.1.0] - 2026-11-02
 
