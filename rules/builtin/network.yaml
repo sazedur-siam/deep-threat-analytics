@@ -1,0 +1,75 @@
+# Network destinations and techniques commonly used to move stolen data.
+- id: network/exfil-endpoint
+  title: Contacts a data-collection endpoint
+  category: network
+  severity: high
+  languages: ['*']
+  match:
+    any:
+      - regex: 'webhook\.site|requestbin|pipedream\.net|beeceptor\.com'
+      - regex: '\.oast\.(fun|me|pro|live|site|online)|interact\.sh|burpcollaborator\.net|canarytokens'
+      - regex: 'ngrok(-free)?\.(io|app)|\btransfer\.sh\b|\b0x0\.st\b|paste\.ee|pastebin\.com/raw'
+    scope: line
+  message: '{package} contacts a known data-collection or tunneling service in {file}'
+
+- id: network/chat-webhook
+  title: Posts to a chat webhook
+  category: network
+  severity: medium
+  languages: ['*']
+  match:
+    any:
+      - regex: 'discord(app)?\.com/api/webhooks'
+      - regex: 'api\.telegram\.org/bot'
+      - regex: 'hooks\.slack\.com/services'
+    scope: line
+  message: '{package} posts to a chat webhook in {file}'
+
+- id: network/raw-ip-url
+  title: Connects to a hardcoded IP address
+  category: network
+  severity: medium
+  languages: ['*']
+  match:
+    any:
+      - regex: '(https?|wss?|tcp)://(\d{1,3}\.){3}\d{1,3}'
+    not:
+      - regex: '://(127\.|0\.0\.0\.0|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.|255\.)'
+    scope: line
+  message: '{package} connects to a hardcoded IP address in {file}'
+
+- id: network/ip-lookup
+  title: Looks up the public IP address
+  category: network
+  severity: low
+  languages: ['*']
+  match:
+    any:
+      - regex: 'api\.ipify\.org|ifconfig\.me|ipinfo\.io|icanhazip\.com|checkip\.amazonaws\.com'
+    scope: line
+  message: '{package} looks up the machine''s public IP address in {file}'
+
+- id: network/dns-exfiltration
+  title: Encodes data into DNS lookups
+  category: network
+  severity: high
+  languages: [javascript, typescript]
+  match:
+    all:
+      - regex: '\bdns\.(resolve\w*|lookup)\s*\('
+      - regex: 'process\.env|os\.(hostname|userInfo)\s*\(|toString\(\s*[''"](hex|base64)[''"]\s*\)'
+    scope: file
+  message: '{package} sends encoded machine data through DNS lookups in {file}'
+
+- id: network/python-dns-exfiltration
+  title: Encodes data into DNS lookups
+  category: network
+  severity: high
+  languages: [python]
+  match:
+    all:
+      - regex: 'socket\.gethostbyname\s*\(|dns\.resolver\.(resolve|query)\s*\('
+      - regex: 'os\.environ|getpass\.getuser|socket\.gethostname'
+      - regex: '\.hex\(\)|b(32|64)encode|binascii\.hexlify'
+    scope: file
+  message: '{package} sends encoded machine data through DNS lookups in {file}'
