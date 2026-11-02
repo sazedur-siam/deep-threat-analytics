@@ -4,7 +4,13 @@ import { readFile as fsReadFile } from 'node:fs/promises';
 import * as path from 'node:path';
 import { makeFindingId, trimEvidence } from '../core/findings';
 import { LineIndex, lineRange } from '../core/text';
-import type { Finding, ResolvedDep, Severity, SourceRange } from '../core/types';
+import {
+  severityRank,
+  type Finding,
+  type ResolvedDep,
+  type Severity,
+  type SourceRange,
+} from '../core/types';
 
 /** Lifecycle scripts npm runs automatically on install, with their base severity. */
 const NPM_HOOKS: Record<string, Severity> = {
@@ -129,6 +135,48 @@ function scanSetupPy(ctx: Ctx, file: string, text: string): Finding[] {
   return [];
 }
 
+const RUST_NETWORK =
+  /\b(reqwest|ureq|hyper|isahc|surf|curl)::|\bTcpStream::connect\b|\bUdpSocket::bind\b|\bdirs::home_dir\b|env::var(_os)?\(\s*"(HOME|USERPROFILE)"/;
+const RUST_SHELL =
+  /Command::new\(\s*"(\/bin\/)?(sh|bash|zsh|cmd(\.exe)?|powershell(\.exe)?|pwsh|curl|wget)"/;
+
+/** Cargo runs a crate's build.rs on the developer's machine at build time. */
+function scanBuildRs(ctx: Ctx, file: string, text: string): Finding[] {
+  const lines = new LineIndex(text);
+  let severity: Severity = 'low';
+  let hit: { line: number; col: number; len: number; text: string } | undefined;
+  for (let i = 0; i < lines.lineCount; i++) {
+    const line = lines.line(i);
+    if (/^\s*\/\//.test(line)) continue;
+    const net = RUST_NETWORK.exec(line);
+    const shell = net ? undefined : RUST_SHELL.exec(line);
+    const m = net ?? shell;
+    if (!m) continue;
+    const level: Severity = net ? 'high' : 'medium';
+    if (!hit || severityRank(level) > severityRank(severity)) {
+      severity = level;
+      hit = { line: i, col: m.index, len: m[0].length, text: line };
+    }
+  }
+  const range = hit
+    ? { startLine: hit.line, startCol: hit.col, endLine: hit.line, endCol: hit.col + hit.len }
+    : lineRange(0, lines.line(0).length);
+  return [
+    finding(
+      ctx,
+      file,
+      'install-hook/cargo-build-script',
+      severity === 'low' ? 'Runs a build script' : 'Build script runs commands or network code',
+      severity,
+      severity === 'low'
+        ? `${ctx.dep.name} has a build.rs that Cargo runs on your machine at build time`
+        : `${ctx.dep.name} build.rs ${severity === 'high' ? 'uses the network or your home directory' : 'runs shell commands'} at build time`,
+      range,
+      hit?.text ?? 'build.rs',
+    ),
+  ];
+}
+
 function scanPth(ctx: Ctx, file: string, text: string): Finding[] {
   const lines = new LineIndex(text);
   const known = KNOWN_PTH.some((re) => re.test(path.basename(file)));
@@ -171,8 +219,13 @@ export async function scanInstallHooks(
       base === 'package.json' &&
       dep.installPath !== undefined &&
       path.dirname(file) === dep.installPath;
+    const isBuildScript =
+      dep.ecosystem === 'cargo' &&
+      dep.installPath !== undefined &&
+      file === path.join(dep.installPath, 'build.rs');
     const relevant =
       isRootManifest ||
+      isBuildScript ||
       (dep.ecosystem === 'pypi' && (base === 'setup.py' || base.endsWith('.pth')));
     if (!relevant) continue;
     let text: string;
@@ -184,7 +237,8 @@ export async function scanInstallHooks(
     if (isRootManifest) {
       const gyp = existsSync(path.join(dep.installPath as string, 'binding.gyp'));
       out.push(...scanNpmManifest(ctx, file, text, gyp));
-    } else if (base === 'setup.py') out.push(...scanSetupPy(ctx, file, text));
+    } else if (isBuildScript) out.push(...scanBuildRs(ctx, file, text));
+    else if (base === 'setup.py') out.push(...scanSetupPy(ctx, file, text));
     else out.push(...scanPth(ctx, file, text));
   }
   return out;
