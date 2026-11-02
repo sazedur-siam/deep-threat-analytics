@@ -9,7 +9,8 @@ import { walkFiles } from './walk';
 
 /** Platform requirements are not packages: php, ext-json, lib-icu, composer-plugin-api, ... */
 export function isPlatformPackage(name: string): boolean {
-  return !name.includes('/') || /^(php|hhvm|ext-|lib-|composer(-plugin|-runtime)?-api)/.test(name);
+  // Real packages are always vendor/name; platform requirements never contain a slash.
+  return !name.includes('/');
 }
 
 /** Packagist versions are often tagged `v1.2.3`; OSV and comparisons use `1.2.3`. */
