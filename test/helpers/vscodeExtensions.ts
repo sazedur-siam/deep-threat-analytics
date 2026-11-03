@@ -1,5 +1,5 @@
 // Builds a throwaway copy of test/fixtures/vscode-extensions for unit and integration tests.
-import { cp, mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 
@@ -14,12 +14,14 @@ export function encodeInvisible(source: string): string {
 }
 
 /**
- * Copy the fixture into `<tmp>/depthreat-ext-*\/extensions` (editors keep extensions.json in a
- * folder named `extensions`) and plant the invisible payload, so the repository never contains
- * raw invisible characters. Returns the new extensions folder.
+ * Copy the fixture into `<tmp>/depthreat-ext-*\/[editorFolder/]extensions` (editors keep
+ * extensions.json in a folder named `extensions`) and plant the invisible payload, so the
+ * repository never contains raw invisible characters. Returns the new extensions folder.
  */
-export async function makeExtensionsDir(fixtureDir: string): Promise<string> {
-  const dir = path.join(await mkdtemp(path.join(tmpdir(), 'depthreat-ext-')), 'extensions');
+export async function makeExtensionsDir(fixtureDir: string, editorFolder = ''): Promise<string> {
+  const base = await mkdtemp(path.join(tmpdir(), 'depthreat-ext-'));
+  const dir = path.join(base, editorFolder, 'extensions');
+  await mkdir(path.dirname(dir), { recursive: true });
   await cp(fixtureDir, dir, { recursive: true });
   const loader = path.join(dir, GLASSWORM_EXTENSION, 'lib', 'extension.js');
   const text = await readFile(loader, 'utf8');
