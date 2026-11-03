@@ -40,3 +40,52 @@
       - regex: 'Runner\.(Worker|Listener)|\bACTIONS_RUNTIME_TOKEN\b|\bGITHUB_ACTIONS\b|\bisSecret\b'
     scope: file
   message: '{package} reads process memory and targets the GitHub Actions runner in {file}, which steals masked CI secrets'
+
+# --- Cloud instance metadata -----------------------------------------------------------------
+# The official cloud SDKs (aws-sdk / @aws-sdk/credential-provider-imds, botocore,
+# google-auth-library, @azure/identity, the Go and Java SDKs) legitimately talk to these
+# endpoints, so the endpoint alone is only `low`, and files that carry the SDKs' own
+# configuration knobs are skipped entirely. Severity goes up only when the same file also does
+# something no SDK does: sending data to a webhook/paste/tunnel/chat host or a hardcoded public
+# IP (critical), or dumping the whole environment (high). The correlated rules deliberately do
+# NOT honor the SDK markers, so a payload cannot silence them by mentioning those names.
+- id: network/cloud-metadata-access
+  title: Contacts a cloud instance metadata endpoint
+  category: network
+  severity: low
+  languages: ['*']
+  match:
+    all:
+      # AWS IMDS (IPv4/IPv6), ECS task credentials, GCP, Azure IMDS and Alibaba Cloud.
+      - regex: &cloud-metadata '169\.254\.169\.254|169\.254\.170\.2(?!\d)|fd00:ec2::254|100\.100\.100\.200|metadata\.google\.internal|computeMetadata/v1|/metadata/identity/oauth2/token|/latest/meta-data/iam/security-credentials|/latest/api/token'
+    not:
+      # Configuration knobs that only the official SDK credential providers implement.
+      - regex: 'AWS_EC2_METADATA_DISABLED|AWS_EC2_METADATA_SERVICE_ENDPOINT|AWS_CONTAINER_CREDENTIALS_(RELATIVE|FULL)_URI|ec2_metadata_service_endpoint|GCE_METADATA_(HOST|IP|ROOT)|IMDS_ENDPOINT|IDENTITY_ENDPOINT|MSI_ENDPOINT'
+    scope: file
+  message: '{package} contacts a cloud instance metadata endpoint in {file}, which can hand out IAM credentials'
+
+- id: exfiltration/cloud-metadata-to-external
+  title: Sends cloud instance credentials to an outside endpoint
+  category: exfiltration
+  severity: critical
+  languages: ['*']
+  match:
+    all:
+      - regex: *cloud-metadata
+      # Webhook, paste, tunnel and chat hosts, or a hardcoded public IP. Private, loopback and
+      # link-local addresses (including the metadata IPs themselves) are excluded.
+      - regex: &exfil-dest 'webhook\.site|requestbin|pipedream\.net|beeceptor\.com|\.oast\.(fun|me|pro|live|site|online)|interact\.sh|burpcollaborator\.net|ngrok(-free)?\.(io|app)|trycloudflare\.com|\btransfer\.sh\b|\b0x0\.st\b|paste\.ee|pastebin\.com|discord(app)?\.com/api/webhooks|api\.telegram\.org/bot|hooks\.slack\.com/services|(https?|wss?|tcp)://(?!(127\.|0\.0\.0\.0|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.|100\.100\.100\.200|255\.))(\d{1,3}\.){3}\d{1,3}'
+    scope: file
+  message: '{package} queries a cloud metadata endpoint and sends data to an outside collection endpoint in {file}'
+
+- id: exfiltration/cloud-metadata-with-env-dump
+  title: Harvests cloud instance credentials and the environment
+  category: exfiltration
+  severity: high
+  languages: ['*']
+  match:
+    all:
+      - regex: *cloud-metadata
+      - regex: &env-dump 'JSON\.stringify\(\s*process\.env\s*[,)]|Object\.(keys|entries|values)\(\s*process\.env\s*\)|json\.dumps\(\s*(dict\(\s*)?os\.environ|dict\(\s*os\.environ\s*\)|os\.environ\.items\(\s*\)|str\(\s*os\.environ\s*\)|\bos\.Environ\(\)|\benv::vars(_os)?\(\)|\bgetenv\(\s*\)|\b(json_encode|serialize|var_export|print_r)\(\s*\$_(ENV|SERVER)\b|\bSystem\.getenv\(\s*\)|\bprintenv\b'
+    scope: file
+  message: '{package} queries a cloud metadata endpoint and collects all environment variables in {file}'

