@@ -1,0 +1,137 @@
+# Tampering with developer tooling so code re-runs later or spreads (2026 worm campaigns such as
+# Shai-Hulud, ChainDrop and MALFEX). Path patterns require a path-like token (preceded by a
+# quote or a path separator) so prose such as "see .vscode/settings.json" in help text does not
+# count, and write rules also require a file-write call in the same file.
+
+# IDE settings can run code on folder open (tasks.json runOn: folderOpen, terminal profiles,
+# launch configs), so writing them is a persistence vector.
+- id: persistence/ide-project-config
+  title: Writes project IDE settings or tasks
+  category: persistence
+  severity: medium
+  languages: [javascript, typescript, python, go, rust, php, java]
+  match:
+    all:
+      - regex: '[''"`/\\]\.vscode[/\\''"`\s,+]{1,8}(settings|tasks|launch)\.json\b|[''"`/\\]\.idea[/\\''"`\s,+]{1,8}(workspace\.xml|runConfigurations|tools|startup)\b'
+      - regex: '\b(writeFile|appendFile|outputFile|writeJson|outputJson|copyFile|cp)(Sync)?\s*\(|\bcreateWriteStream\s*\(|\bopen\s*\(.*,\s*(mode\s*=\s*)?[''"][wax]b?\+?[''"]\s*[,)]|\.write_(text|bytes)\s*\(|\bshutil\.copy(file|2)?\s*\(|\b(os|ioutil)\.(WriteFile|OpenFile|Create)\(|\bfs::(write|copy)\(|\bOpenOptions::new\(\)|\bFile::create\(|\bfile_put_contents\s*\(|\bfopen\s*\(.*,\s*[''"][waxc]b?\+?[''"]|\bFiles\.(write|writeString|newBufferedWriter|newOutputStream|copy)\s*\(|\bnew\s+(FileWriter|FileOutputStream)\s*\('
+    scope: file
+  message: '{package} writes project IDE settings or tasks (.vscode/.idea) in {file}; these can run code when the folder is opened'
+
+- id: persistence/ide-user-config
+  title: Writes user-level editor settings or extensions
+  category: persistence
+  severity: high
+  languages: [javascript, typescript, python, go, rust, php, java]
+  match:
+    all:
+      - regex: '\b(Code|Code - Insiders|VSCodium|Cursor|Windsurf)[/\\''"`\s,+]{1,8}User[/\\''"`\s,+]{1,8}(settings|tasks|keybindings)\.json\b|[''"`/\\]\.(vscode|vscode-insiders|vscode-oss|cursor|windsurf)[/\\''"`\s,+]{1,8}extensions[/\\''"`]'
+      - regex: '\b(writeFile|appendFile|outputFile|writeJson|outputJson|copyFile|cp)(Sync)?\s*\(|\bcreateWriteStream\s*\(|\bopen\s*\(.*,\s*(mode\s*=\s*)?[''"][wax]b?\+?[''"]\s*[,)]|\.write_(text|bytes)\s*\(|\bshutil\.copy(file|2|tree)?\s*\(|\b(os|ioutil)\.(WriteFile|OpenFile|Create)\(|\bfs::(write|copy)\(|\bOpenOptions::new\(\)|\bFile::create\(|\bfile_put_contents\s*\(|\bfopen\s*\(.*,\s*[''"][waxc]b?\+?[''"]|\bFiles\.(write|writeString|newBufferedWriter|newOutputStream|copy)\s*\(|\bnew\s+(FileWriter|FileOutputStream)\s*\('
+    scope: file
+  message: '{package} writes user-level editor settings, tasks or extensions in {file}; this survives across projects and editor restarts'
+
+# Instruction, hook and MCP files steer AI coding agents; a dependency that writes them can make
+# the agent run commands or leak data (MALFEX dropped AGENTS.md files). Agent SDKs and MCP
+# installers legitimately write some of these, but they are rarely runtime dependencies.
+- id: persistence/ai-agent-config
+  title: Writes AI coding agent instructions or config
+  category: persistence
+  severity: high
+  languages: [javascript, typescript, python, go, rust, php, java]
+  match:
+    all:
+      - regex: '[''"`/\\]\.(claude|codex|gemini|cursor[/\\''"`\s,+]{1,8}rules)[/\\''"`]|[''"`/\\]\.claude\.json[''"`]|[''"`/\\](CLAUDE|CLAUDE\.local|AGENTS|GEMINI)\.md[''"`]|[''"`/\\]\.(cursorrules|windsurfrules|clinerules)[''"`/\\]|copilot-instructions\.md|[''"`/\\]\.?mcp\.json[''"`]|claude_desktop_config\.json'
+      - regex: '\b(writeFile|appendFile|outputFile|writeJson|outputJson|copyFile|cp)(Sync)?\s*\(|\bcreateWriteStream\s*\(|\bopen\s*\(.*,\s*(mode\s*=\s*)?[''"][wax]b?\+?[''"]\s*[,)]|\.write_(text|bytes)\s*\(|\bshutil\.copy(file|2|tree)?\s*\(|\b(os|ioutil)\.(WriteFile|OpenFile|Create)\(|\bfs::(write|copy)\(|\bOpenOptions::new\(\)|\bFile::create\(|\bfile_put_contents\s*\(|\bfopen\s*\(.*,\s*[''"][waxc]b?\+?[''"]|\bFiles\.(write|writeString|newBufferedWriter|newOutputStream|copy)\s*\(|\bnew\s+(FileWriter|FileOutputStream)\s*\('
+    scope: file
+  message: '{package} writes AI coding agent instructions or configuration (CLAUDE.md, AGENTS.md, .cursor/rules, MCP config, ...) in {file}'
+
+# Text planted for an AI agent that reads dependency code. Categorized as dynamic-code because
+# the "payload" is natural language that an agent turns into executed commands. LLM and prompt
+# libraries legitimately contain prompt text, so this needs an injection phrase AND a concrete
+# action (run a command, send secrets) on the same line, and skips injection-detection lists.
+- id: dynamic-code/agent-prompt-injection
+  title: Contains prompt-injection text aimed at AI agents
+  category: dynamic-code
+  severity: medium
+  languages: ['*']
+  match:
+    all:
+      - regex: '\b(ignore|disregard|forget|override)\s+(all\s+|any\s+|every\s+)?(of\s+)?(the\s+|your\s+|my\s+)?(previous|prior|above|earlier|preceding|system|original)\s+(instructions?|prompts?|rules|directives|guidelines|messages|context)\b|\byou\s+are\s+now\s+(an?\s+)?(unrestricted|unfiltered|jailbroken|dan|developer\s+mode|in\s+developer\s+mode|root|admin)\b|\b(attention|note|message|instructions?)\s+(to|for)\s+(all\s+)?(ai|llm|coding)\s+(agents?|assistants?|models?)\b|\b(ai|llm|coding)\s+(agents?|assistants?)\s+(must|should|are\s+required\s+to)\b'
+        flags: i
+      - regex: '\b(run|execute|exec|invoke)\b[^\n]{0,40}?\b(commands?|scripts?|shell|bash|sh|powershell|curl|wget|following)\b|\b(curl|wget)\s+(-\w+\s+)*https?://|\b(send|upload|post|exfiltrate|transmit|forward|copy|leak|include)\b[^\n]{0,40}?(\bsecrets?\b|\btokens?\b|\bcredentials?\b|\bapi[\s_-]?keys?\b|\bpasswords?\b|\.env\b|\.npmrc\b|\.ssh\b|\bssh\s+keys?\b|\bprivate\s+keys?\b|\benvironment\s+variables\b)|\b(read|cat|print|reveal|output|dump)\b[^\n]{0,30}?(\.env\b|\.npmrc\b|\.ssh\b|\bid_rsa\b|\bsecrets?\b|\btokens?\b|\bcredentials\b|\bapi[\s_-]?keys?\b|\benvironment\s+variables\b)'
+        flags: i
+    not:
+      # Prompt-injection detectors, guardrails and red-team suites list these phrases as data.
+      - regex: '\b(detect|detection|detector|classif|is_?injection|injection_?(pattern|signature|score|check|list)|guardrail|sanitiz|red[\s_-]?team|jailbreak_?(score|detect|pattern)|benchmark|test_?case)\w*'
+        flags: i
+    scope: line
+  message: '{package} contains text in {file} that tries to make an AI coding agent ignore its instructions and run commands or leak secrets'
+
+# CI pipelines run with repository secrets; worms add a workflow that dumps them. Project
+# generators (projen, nx, create-* tools) also write CI files but are normally devDependencies.
+- id: persistence/ci-config-write
+  title: Writes CI pipeline configuration
+  category: persistence
+  severity: high
+  languages: [javascript, typescript, python, go, rust, php, java]
+  match:
+    all:
+      - regex: '[''"`/\\]\.github[/\\''"`\s,+]{1,8}workflows\b|[''"`/\\]\.gitlab-ci\.ya?ml\b|[''"`/\\]\.circleci[/\\''"`]|[''"`/\\]azure-pipelines\.ya?ml\b|[''"`/\\]Jenkinsfile[''"`]|[''"`/\\]bitbucket-pipelines\.ya?ml\b|[''"`/\\]\.buildkite[/\\''"`]'
+      - regex: '\b(writeFile|appendFile|outputFile|writeJson|outputJson|copyFile|cp)(Sync)?\s*\(|\bcreateWriteStream\s*\(|\bopen\s*\(.*,\s*(mode\s*=\s*)?[''"][wax]b?\+?[''"]\s*[,)]|\.write_(text|bytes)\s*\(|\bshutil\.copy(file|2|tree)?\s*\(|\b(os|ioutil)\.(WriteFile|OpenFile|Create)\(|\bfs::(write|copy)\(|\bOpenOptions::new\(\)|\bFile::create\(|\bfile_put_contents\s*\(|\bfopen\s*\(.*,\s*[''"][waxc]b?\+?[''"]|\bFiles\.(write|writeString|newBufferedWriter|newOutputStream|copy)\s*\(|\bnew\s+(FileWriter|FileOutputStream)\s*\('
+    scope: file
+  message: '{package} writes CI pipeline configuration (.github/workflows, .gitlab-ci.yml, ...) in {file}'
+
+- id: persistence/github-api-workflow-write
+  title: Creates GitHub Actions workflows through the API
+  category: persistence
+  severity: high
+  languages: [javascript, typescript, python, go, rust, php, java]
+  match:
+    all:
+      - regex: '\.github(/|%2F)workflows\b|[''"`/\\]\.github[/\\''"`\s,+]{1,8}workflows\b'
+      - regex: '/repos/[^\s''"]*/contents/|\bcreateOrUpdateFileContents\b|\.(create_file|update_file)\s*\(|/repos/[^\s''"]*/git/(trees|commits|refs)\b|\bcreateCommitOnBranch\b'
+    scope: file
+  message: '{package} creates or updates GitHub Actions workflow files through the GitHub API in {file}'
+
+# Worms spread by publishing new versions of every package the stolen token can reach. Release
+# tooling (semantic-release, np, release-it, lerna, changesets) legitimately runs these commands,
+# but it is normally a devDependency, and dev dependencies are not scanned by default.
+- id: exec/registry-publish
+  title: Publishes packages to a registry
+  category: exec
+  severity: high
+  languages: [javascript, typescript, python, go, rust, php, java]
+  match:
+    all:
+      - regex: '\b(npm|pnpm|bun)\s+publish\b|\byarn\s+(npm\s+)?publish\b|\btwine\s+upload\b|\b(poetry|flit|hatch|uv)\s+publish\b|\bcargo\s+publish\b|\bgem\s+push\b|\bmvn\s+deploy\b|[''"`](npm|pnpm|yarn|bun|twine|poetry|uv|cargo|gem|mvn)(\.cmd|\.exe)?[''"`]\s*(,\s*(\[|\bList\.of\(|&\[)?|\)\s*\.args?\(\s*(&?\[)?)\s*[''"`](publish|upload|push|deploy)[''"`]|\blibnpmpublish\b|/-/npm/v1/tokens\b|upload\.pypi\.org/legacy|/api/v1/crates/new\b|/api/v1/gems\b'
+      - regex: '\b(exec|execSync|execFile|execFileSync|spawn|spawnSync|fork)\s*\(|\bexeca(Sync|Command)?\s*\(|\bsubprocess\.|\bos\.(system|popen)\s*\(|\bexec\.Command(Context)?\(|\bCommand::new\(|\b(shell_exec|passthru|proc_open|popen|system)\s*\(|\bRuntime\.getRuntime\(\)\.exec|\bnew\s+ProcessBuilder\(|\bfetch\s*\(|\bhttps?\.request\s*\(|\baxios\b|\brequests\.(put|post)\s*\(|\bhttpx\.|\bhttp\.NewRequest|\breqwest::|\bcurl_exec\s*\(|\bHttpClient\b|\blibnpmpublish\b'
+    scope: file
+  message: '{package} publishes packages to a registry (npm/PyPI/crates.io/RubyGems/Maven) in {file}; self-publishing is how supply-chain worms spread'
+
+- id: exec/registry-publish-with-token
+  title: Publishes packages using harvested registry tokens
+  category: exec
+  severity: critical
+  languages: [javascript, typescript, python, go, rust, php, java]
+  match:
+    all:
+      - regex: '\b(npm|pnpm|bun)\s+publish\b|\byarn\s+(npm\s+)?publish\b|\btwine\s+upload\b|\b(poetry|flit|hatch|uv)\s+publish\b|\bcargo\s+publish\b|\bgem\s+push\b|\bmvn\s+deploy\b|[''"`](npm|pnpm|yarn|bun|twine|poetry|uv|cargo|gem|mvn)(\.cmd|\.exe)?[''"`]\s*(,\s*(\[|\bList\.of\(|&\[)?|\)\s*\.args?\(\s*(&?\[)?)\s*[''"`](publish|upload|push|deploy)[''"`]|\blibnpmpublish\b|/-/npm/v1/tokens\b|upload\.pypi\.org/legacy|/api/v1/crates/new\b|/api/v1/gems\b'
+      - regex: '\b(exec|execSync|execFile|execFileSync|spawn|spawnSync|fork)\s*\(|\bexeca(Sync|Command)?\s*\(|\bsubprocess\.|\bos\.(system|popen)\s*\(|\bexec\.Command(Context)?\(|\bCommand::new\(|\b(shell_exec|passthru|proc_open|popen|system)\s*\(|\bRuntime\.getRuntime\(\)\.exec|\bnew\s+ProcessBuilder\(|\bfetch\s*\(|\bhttps?\.request\s*\(|\baxios\b|\brequests\.(put|post)\s*\(|\bhttpx\.|\bhttp\.NewRequest|\breqwest::|\bcurl_exec\s*\(|\bHttpClient\b|\blibnpmpublish\b'
+      - regex: '[''"`/\\]\.(npmrc|pypirc)\b|\b(NPM_TOKEN|NODE_AUTH_TOKEN|NPM_AUTH_TOKEN|GITHUB_TOKEN|GH_TOKEN|GITHUB_PAT|PYPI_TOKEN|PYPI_API_TOKEN|TWINE_PASSWORD|CARGO_REGISTRY_TOKEN|GEM_HOST_API_KEY)\b|\bghp_[A-Za-z0-9]{4}|\bgithub_pat_|\bgh\s+auth\s+token\b|[''"`]gh[''"`]\s*,\s*\[?\s*[''"`]auth[''"`]'
+    scope: file
+  message: '{package} reads registry or GitHub tokens and publishes packages in {file}, the self-propagation pattern of npm/PyPI worms'
+
+# Shai-Hulud style: use a stolen GitHub token to create a repo and push loot into it, or to
+# register a self-hosted runner. Requires a token read AND a write-style request (POST/PUT or a
+# create/update SDK call), so read-only API clients that fetch file contents do not match.
+- id: exfiltration/github-api-abuse
+  title: Uses a GitHub token to create repos, push files or register runners
+  category: exfiltration
+  severity: high
+  languages: [javascript, typescript, python, go, rust, php, java]
+  match:
+    all:
+      - regex: 'https?://[^\s''"`]*/user/repos\b|[''"`]/user/repos[''"`]|/repos/[^\s''"]*/contents/|/actions/secrets\b|/actions/runners/registration-token\b|/orgs/[^\s''"]*/actions/runners\b|\b(createForAuthenticatedUser|createOrUpdateFileContents|createRegistrationTokenFor(Repo|Org)|createOrUpdate(Repo|Org)Secret|listRepoSecrets|getRepoPublicKey)\b|\.create_repo\s*\('
+      - regex: '\b(GITHUB_TOKEN|GH_TOKEN|GITHUB_PAT|GH_ENTERPRISE_TOKEN)\b|\bgh[pousr]_[A-Za-z0-9]{4}|\bgithub_pat_|\bgh\s+auth\s+token\b|[''"`]gh[''"`]\s*,\s*\[?\s*[''"`]auth[''"`]|[''"`/\\]\.git-credentials\b|\bgh[/\\]+hosts\.yml\b'
+      - regex: '[''"`](PUT|POST)[''"`]|\.(put|post|PUT|POST)\s*\(|\bhttp\.Method(Put|Post)\b|\bMethod::(PUT|POST)\b|\bCURLOPT_(POST|CUSTOMREQUEST)\b|\b(createForAuthenticatedUser|createOrUpdateFileContents|createRegistrationTokenFor(Repo|Org)|createOrUpdate(Repo|Org)Secret)\b|\.create_repo\s*\('
+    scope: file
+  message: '{package} uses a GitHub token to create repositories, push files or register runners in {file}'
