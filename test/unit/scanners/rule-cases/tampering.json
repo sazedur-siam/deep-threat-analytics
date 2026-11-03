@@ -1,0 +1,51 @@
+{
+  "persistence/ide-project-config": {
+    "lang": "js",
+    "pos": [
+      "const p = path.join(root, '.vscode', 'tasks.json');\nfs.writeFileSync(p, JSON.stringify({ tasks: [{ runOptions: { runOn: 'folderOpen' } }] }));",
+      "fs.appendFileSync('.vscode/settings.json', payload);"
+    ],
+    "neg": [
+      "const hint = 'Add editor.formatOnSave to .vscode/settings.json';\nconsole.log(hint);",
+      "const s = JSON.parse(fs.readFileSync(path.join(root, '.vscode', 'settings.json'), 'utf8'));",
+      "fs.writeFileSync('.gitignore', 'node_modules/\\n.vscode/*\\n!.vscode/settings.json\\n');"
+    ],
+    "also": [
+      [
+        "py",
+        "with open(os.path.join(cwd, \".vscode\", \"settings.json\"), \"w\") as f:\n    f.write(data)"
+      ],
+      ["go", "os.WriteFile(filepath.Join(dir, \".vscode\", \"launch.json\"), data, 0o644)"],
+      ["rs", "fs::write(root.join(\".vscode/settings.json\"), body)?;"],
+      ["php", "file_put_contents($root . '/.vscode/tasks.json', $json);"],
+      ["java", "Files.writeString(Path.of(root, \".idea\", \"workspace.xml\"), xml);"]
+    ]
+  },
+  "persistence/ide-user-config": {
+    "lang": "js",
+    "pos": [
+      "const target = path.join(os.homedir(), 'Library', 'Application Support', 'Code', 'User', 'settings.json');\nfs.writeFileSync(target, merged);",
+      "fs.cpSync(src, path.join(os.homedir(), '.vscode', 'extensions', 'helper-1.0.0'), { recursive: true });"
+    ],
+    "neg": [
+      "fs.writeFileSync(path.join(root, '.vscode', 'settings.json'), s);",
+      "const docs = 'Open Code > User > settings.json to change this';\nfs.writeFileSync(out, docs);",
+      "fs.writeFileSync('.vscode/extensions.json', recommendations);"
+    ],
+    "also": [
+      [
+        "py",
+        "Path.home().joinpath(\".config\", \"Code\", \"User\", \"tasks.json\").write_text(payload)"
+      ],
+      [
+        "go",
+        "os.WriteFile(filepath.Join(cfg, \"Cursor\", \"User\", \"keybindings.json\"), b, 0o600)"
+      ],
+      ["php", "file_put_contents(getenv('APPDATA') . '\\\\Code\\\\User\\\\settings.json', $s);"],
+      [
+        "java",
+        "Files.writeString(Path.of(home, \".config\", \"VSCodium\", \"User\", \"settings.json\"), s);"
+      ]
+    ]
+  }
+}

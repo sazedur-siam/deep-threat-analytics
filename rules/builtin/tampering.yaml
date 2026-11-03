@@ -1,0 +1,30 @@
+# Tampering with developer tooling so code re-runs later or spreads (2026 worm campaigns such as
+# Shai-Hulud, ChainDrop and MALFEX). Path patterns require a path-like token (preceded by a
+# quote or a path separator) so prose such as "see .vscode/settings.json" in help text does not
+# count, and write rules also require a file-write call in the same file.
+
+# IDE settings can run code on folder open (tasks.json runOn: folderOpen, terminal profiles,
+# launch configs), so writing them is a persistence vector.
+- id: persistence/ide-project-config
+  title: Writes project IDE settings or tasks
+  category: persistence
+  severity: medium
+  languages: [javascript, typescript, python, go, rust, php, java]
+  match:
+    all:
+      - regex: '[''"`/\\]\.vscode[/\\''"`\s,+]{1,8}(settings|tasks|launch)\.json\b|[''"`/\\]\.idea[/\\''"`\s,+]{1,8}(workspace\.xml|runConfigurations|tools|startup)\b'
+      - regex: '\b(writeFile|appendFile|outputFile|writeJson|outputJson|copyFile|cp)(Sync)?\s*\(|\bcreateWriteStream\s*\(|\bopen\s*\(.*,\s*(mode\s*=\s*)?[''"][wax]b?\+?[''"]\s*[,)]|\.write_(text|bytes)\s*\(|\bshutil\.copy(file|2)?\s*\(|\b(os|ioutil)\.(WriteFile|OpenFile|Create)\(|\bfs::(write|copy)\(|\bOpenOptions::new\(\)|\bFile::create\(|\bfile_put_contents\s*\(|\bfopen\s*\(.*,\s*[''"][waxc]b?\+?[''"]|\bFiles\.(write|writeString|newBufferedWriter|newOutputStream|copy)\s*\(|\bnew\s+(FileWriter|FileOutputStream)\s*\('
+    scope: file
+  message: '{package} writes project IDE settings or tasks (.vscode/.idea) in {file}; these can run code when the folder is opened'
+
+- id: persistence/ide-user-config
+  title: Writes user-level editor settings or extensions
+  category: persistence
+  severity: high
+  languages: [javascript, typescript, python, go, rust, php, java]
+  match:
+    all:
+      - regex: '\b(Code|Code - Insiders|VSCodium|Cursor|Windsurf)[/\\''"`\s,+]{1,8}User[/\\''"`\s,+]{1,8}(settings|tasks|keybindings)\.json\b|[''"`/\\]\.(vscode|vscode-insiders|vscode-oss|cursor|windsurf)[/\\''"`\s,+]{1,8}extensions[/\\''"`]'
+      - regex: '\b(writeFile|appendFile|outputFile|writeJson|outputJson|copyFile|cp)(Sync)?\s*\(|\bcreateWriteStream\s*\(|\bopen\s*\(.*,\s*(mode\s*=\s*)?[''"][wax]b?\+?[''"]\s*[,)]|\.write_(text|bytes)\s*\(|\bshutil\.copy(file|2|tree)?\s*\(|\b(os|ioutil)\.(WriteFile|OpenFile|Create)\(|\bfs::(write|copy)\(|\bOpenOptions::new\(\)|\bFile::create\(|\bfile_put_contents\s*\(|\bfopen\s*\(.*,\s*[''"][waxc]b?\+?[''"]|\bFiles\.(write|writeString|newBufferedWriter|newOutputStream|copy)\s*\(|\bnew\s+(FileWriter|FileOutputStream)\s*\('
+    scope: file
+  message: '{package} writes user-level editor settings, tasks or extensions in {file}; this survives across projects and editor restarts'
