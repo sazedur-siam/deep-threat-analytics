@@ -2,7 +2,7 @@
   "name": "deep-threat-analytics",
   "displayName": "DepThreat Analytics",
   "description": "Find malicious npm, PyPI, Go, Rust (Cargo), PHP (Composer) and Java (Maven/Gradle) dependencies: data exfiltration, install hooks, GlassWorm invisible Unicode, typosquats, CVEs. Local; never runs their code.",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "publisher": "MdSazedurRahman",
   "license": "MIT",
   "repository": {
