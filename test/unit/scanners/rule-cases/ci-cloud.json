@@ -1,0 +1,46 @@
+{
+  "secrets-fs/process-memory-read": {
+    "lang": "go",
+    "pos": [
+      "f, _ := os.Open(fmt.Sprintf(\"/proc/%d/environ\", pid))",
+      "if err := unix.PtraceAttach(pid); err != nil {",
+      "mem, _ := os.Open(filepath.Join(\"/proc\", strconv.Itoa(pid), \"mem\"))"
+    ],
+    "neg": [
+      "func PtraceAttach(pid int) (err error) { return ptrace(PTRACE_ATTACH, pid, 0, 0) }",
+      "\tPTRACE_ATTACH = 0x10",
+      "env, _ := os.ReadFile(\"/proc/self/environ\")",
+      "stat, _ := os.ReadFile(fmt.Sprintf(\"/proc/%d/stat\", pid))",
+      "info, _ := os.ReadFile(\"/proc/meminfo\")"
+    ],
+    "also": [
+      ["js", "const fd = fs.openSync(`/proc/${pid}/mem`, 'r');"],
+      ["js", "const env = fs.readFileSync('/proc/' + pid + '/environ', 'utf8');"],
+      ["py", "with open(f'/proc/{pid}/mem', 'rb') as mem:\n    mem.seek(start)"],
+      ["py", "libc.ptrace(PTRACE_ATTACH, pid, None, None)"],
+      ["rs", "let n = nix::sys::uio::process_vm_readv(pid, &mut local, &remote)?;"],
+      ["php", "$h = fopen(\"/proc/$pid/mem\", 'rb');"],
+      ["java", "RandomAccessFile mem = new RandomAccessFile(\"/proc/\" + pid + \"/mem\", \"r\");"],
+      ["sh", "cat /proc/$PID/environ | tr '\\0' '\\n'"]
+    ]
+  },
+  "secrets-fs/ci-runner-memory-scrape": {
+    "lang": "js",
+    "pos": [
+      "const pid = execSync('pgrep -f Runner.Worker').toString().trim();\nconst fd = fs.openSync(`/proc/${pid}/mem`, 'r');",
+      "const pids = findPids('Runner.Listener');\nconst data = scrape(`/proc/${pids[0]}/mem`);\nconst hits = data.match(/\"isSecret\":true/g);"
+    ],
+    "neg": [
+      "const fd = fs.openSync(`/proc/${pid}/mem`, 'r');",
+      "if (process.env.GITHUB_ACTIONS) {\n  core.info('running in GitHub Actions');\n}",
+      "const ci = process.env.GITHUB_ACTIONS === 'true';\nconst own = fs.readFileSync('/proc/self/environ', 'utf8');"
+    ],
+    "also": [
+      [
+        "py",
+        "pid = find_pid('Runner.Worker')\nwith open(f'/proc/{pid}/mem', 'rb') as mem:\n    blob = mem.read(size)\nsecrets = re.findall(rb'\"isSecret\":true', blob)"
+      ],
+      ["sh", "PID=$(pgrep -f Runner.Worker)\nsudo cat /proc/$PID/mem > dump.bin"]
+    ]
+  }
+}

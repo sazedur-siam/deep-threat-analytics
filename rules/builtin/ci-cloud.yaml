@@ -1,0 +1,42 @@
+# CI and cloud secret theft: scraping CI runner memory, stealing cloud instance credentials,
+# dumping secret stores, running secret scanners and harvesting CI tokens.
+# Modeled on the 2026 @subql/common and Shai-Hulud incidents. Shared patterns are YAML anchors
+# (&name / *name) so the correlated rules stay in sync with the single-signal ones.
+
+# --- Process memory scraping ---------------------------------------------------------------
+# Reading another process's memory or environment. Covers /proc/<pid>/mem and
+# /proc/<pid>/environ built from templates, format strings or concatenation (but not
+# /proc/self/...), process_vm_readv and ptrace attach/peek.
+# The `not` patterns drop the places these names are *defined* rather than used: libc/nix
+# (Rust) and golang.org/x/sys/unix (Go) declare the syscall wrappers and PTRACE_* constants and
+# are among the most common dependencies in their ecosystems.
+- id: secrets-fs/process-memory-read
+  title: Reads another process's memory or environment
+  category: secrets-fs
+  severity: high
+  languages: ['*']
+  match:
+    any:
+      - regex: &mem-read '/proc/(?!self/|thread-self/)[^\s/''"`]+/(mem|environ)\b|[''"`]/proc/?[''"`].*[''"`]/?(mem|environ)[''"`]|\bprocess_vm_readv\b|\bPTRACE_(ATTACH|SEIZE|PEEKDATA|PEEKTEXT)\b|\bptrace::(attach|seize|read)\s*\(|\b(unix|syscall)\.(PtraceAttach|PtraceSeize|PtracePeekData|PtracePeekText|ProcessVMReadv)\s*\('
+    not:
+      - regex: '\bfn\s+process_vm_readv\b|\bfunc\s+(Ptrace\w*|ProcessVMReadv)\b|libc::process_vm_readv|Request::PTRACE_'
+      - regex: '\bPTRACE_\w+\s*(:\s*[\w:]+\s*)?=\s*(0x)?[\da-fA-F]+\b|#\s*define\s+PTRACE_|^\s*PTRACE_\w+\s*,?\s*$'
+    scope: line
+  message: "{package} reads another process's memory or environment in {file}, a technique used to steal secrets from CI runners"
+  references:
+    - https://man7.org/linux/man-pages/man5/proc_pid_mem.5.html
+
+# Memory scraping plus GitHub Actions runner markers in the same file: the @subql/common and
+# Shai-Hulud payloads located Runner.Worker and pulled masked secrets ("isSecret":true) out of
+# its memory.
+- id: secrets-fs/ci-runner-memory-scrape
+  title: Scrapes CI runner memory for secrets
+  category: secrets-fs
+  severity: critical
+  languages: ['*']
+  match:
+    all:
+      - regex: *mem-read
+      - regex: 'Runner\.(Worker|Listener)|\bACTIONS_RUNTIME_TOKEN\b|\bGITHUB_ACTIONS\b|\bisSecret\b'
+    scope: file
+  message: '{package} reads process memory and targets the GitHub Actions runner in {file}, which steals masked CI secrets'
