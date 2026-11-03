@@ -37,6 +37,16 @@ DepThreat Analytics is a Visual Studio Code extension that reads the source code
 
 _Screenshots use harmless test fixtures that only imitate malicious patterns._
 
+## Installation
+
+- **VS Code:** install [DepThreat Analytics from the Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=MdSazedurRahman.deep-threat-analytics), search for "DepThreat Analytics" in the Extensions view, or run:
+
+  ```bash
+  code --install-extension MdSazedurRahman.deep-threat-analytics
+  ```
+
+- **Cursor, Windsurf, VSCodium and other editors that use Open VSX:** Open VSX listing coming soon. The extension is not published on [Open VSX](https://open-vsx.org) yet.
+
 ## Why another dependency scanner?
 
 Vulnerability scanners match package versions against databases of _known_ CVEs. That misses:
@@ -274,6 +284,8 @@ npm run package            # build a .vsix
 ```
 
 Press **F5** in VS Code to launch an Extension Development Host.
+
+Releasing to the Visual Studio Marketplace and Open VSX is described in [docs/PUBLISHING.md](https://github.com/sazedur-siam/deep-threat-analytics/blob/main/docs/PUBLISHING.md).
 
 Project layout:
 
