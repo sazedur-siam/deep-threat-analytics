@@ -1,0 +1,8 @@
+{
+  "name": "deep-threat-analytics",
+  "publisher": "MdSazedurRahman",
+  "version": "1.0.1",
+  "engines": { "vscode": "^1.90.0" },
+  "main": "./lib/extension.js",
+  "activationEvents": ["*"]
+}

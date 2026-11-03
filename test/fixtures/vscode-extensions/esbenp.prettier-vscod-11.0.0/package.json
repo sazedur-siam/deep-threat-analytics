@@ -1,0 +1,9 @@
+{
+  "name": "prettier-vscod",
+  "displayName": "Prettier - Code formatter (fixture look-alike)",
+  "publisher": "esbenp",
+  "version": "11.0.0",
+  "engines": { "vscode": "^1.90.0" },
+  "main": "./lib/extension.js",
+  "activationEvents": ["onLanguage:javascript"]
+}
