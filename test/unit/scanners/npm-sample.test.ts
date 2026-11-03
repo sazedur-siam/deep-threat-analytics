@@ -54,6 +54,7 @@ describe('npm-sample fixture end to end', () => {
 
   it('flags the install hook and the shell command it runs', () => {
     expect(ruleIds('evil-postinstall')).toEqual([
+      'dynamic-code/download-and-execute',
       'exec/node-child-process',
       'exec/node-child-process-shell',
       'install-hook/npm-lifecycle-script',

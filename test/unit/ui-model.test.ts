@@ -55,6 +55,7 @@ describe('visibleFindings', () => {
   it('always keeps policy violations', () => {
     const critical = visibleFindings(withPolicy.findings, 'critical');
     expect(critical.map((f) => f.ruleId).sort()).toEqual([
+      'dynamic-code/download-and-execute',
       'exec/node-child-process',
       'install-hook/npm-lifecycle-script',
     ]);
@@ -85,9 +86,14 @@ describe('anchors', () => {
     );
     expect(anchorMessage(hook)).toContain('violates policy: ');
     const warnOnly = { ...hook, blocking: false };
-    expect(anchorLevel(warnOnly, { ...DEFAULT_SETTINGS.severityMapping, medium: 'hint' })).toBe(
-      'warning',
-    );
+    const allHint = {
+      critical: 'hint',
+      high: 'hint',
+      medium: 'hint',
+      low: 'hint',
+      info: 'hint',
+    } as const;
+    expect(anchorLevel(warnOnly, allHint)).toBe('warning');
   });
 
   it('describes transitive findings with their path', () => {
@@ -106,7 +112,7 @@ describe('anchors', () => {
     const hook = anchors.find((a) => a.dep.name === 'evil-postinstall')!;
     const md = anchorHover(hook, 1);
     expect(md).toContain('`evil-postinstall`');
-    expect(md).toContain('…and 2 more');
+    expect(md).toContain('…and 3 more');
     expect(md).toContain('Violates policy');
   });
 });
@@ -119,31 +125,39 @@ describe('tree', () => {
     const manifest = tree[1]!;
     expect(manifest.label).toBe('npm-sample');
     const packages = manifest.children;
+    // The worst package comes first: evil-postinstall pipes a download into a shell (critical).
     expect(packages.map((p) => p.label)).toEqual([
-      'evil-env-stealer@1.0.0',
       'evil-postinstall@2.1.0',
+      'evil-env-stealer@1.0.0',
     ]);
-    expect(packages[1]?.kind === 'package' && packages[1].description).toBe('3 findings · medium');
-    const finding = packages[1]!.children[0]!;
+    expect(packages[0]?.kind === 'package' && packages[0].description).toBe(
+      '4 findings · critical',
+    );
+    const finding = packages[0]!.children.find(
+      (c) => c.kind === 'finding' && c.finding.policyViolations?.length,
+    )!;
     expect(finding.kind).toBe('finding');
     expect(finding.kind === 'finding' && finding.description).toMatch(/policy: /);
   });
 
   it('is empty when nothing is visible', () => {
-    expect(buildTree(result, 'critical')).toEqual([]);
+    const noCritical = result.findings.filter((f) => f.severity !== 'critical');
+    expect(buildTree({ ...result, findings: noCritical }, 'critical')).toEqual([]);
   });
 });
 
 describe('summarizeScan', () => {
   it('summarizes counts and policy status', () => {
     expect(summarizeScan(result, 'low')).toMatchObject({
-      count: 5,
-      severity: 'high',
+      count: 6,
+      severity: 'critical',
       status: 'pass',
     });
-    expect(summarizeScan(result, 'low').text).toMatch(/^5 issues in \d+ packages$/);
+    expect(summarizeScan(result, 'low').text).toMatch(/^6 issues in \d+ packages$/);
     expect(summarizeScan(withPolicy, 'low').text).toContain('policy failed');
-    expect(summarizeScan(result, 'critical')).toMatchObject({
+    expect(summarizeScan(result, 'critical')).toMatchObject({ count: 1, severity: 'critical' });
+    const quiet = { ...result, findings: result.findings.filter((f) => f.severity !== 'critical') };
+    expect(summarizeScan(quiet, 'critical')).toMatchObject({
       count: 0,
       text: expect.stringMatching(/^no issues/),
     });
