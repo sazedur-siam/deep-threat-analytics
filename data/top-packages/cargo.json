@@ -38,6 +38,7 @@
   "camino",
   "cargo_metadata",
   "cast",
+  "cbindgen",
   "cc",
   "cfg-if",
   "chrono",
