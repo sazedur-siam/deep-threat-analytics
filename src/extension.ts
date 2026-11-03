@@ -7,6 +7,7 @@ import { registerCommands } from './ui/commands';
 import { DiagnosticsPresenter, registerCodeActions, registerHover } from './ui/diagnostics';
 import { buildTree, summarizeScan, type TreeNode } from './ui/model';
 import { currentSettings, ScanService } from './ui/scanService';
+import { defaultReportPath, writeReport } from './ui/reportWriter';
 import { FindingsTree, StatusBar } from './ui/treeView';
 
 /** Returned from activate() so integration tests can inspect results. */
@@ -18,6 +19,7 @@ export interface DepThreatApi {
 
 export function activate(context: vscode.ExtensionContext): DepThreatApi {
   const output = vscode.window.createOutputChannel('DepThreat Analytics');
+  const version = (context.extension.packageJSON as { version?: string }).version;
   const cache = new ScanCache(path.join(context.globalStorageUri.fsPath, 'scan-cache.json'));
   const service = new ScanService(context, output, cache, (settings, adapters) =>
     createPackageChecks(settings, adapters, context.asAbsolutePath('data')),
@@ -39,6 +41,12 @@ export function activate(context: vscode.ExtensionContext): DepThreatApi {
     view.message = summary.count
       ? undefined
       : `No issues found in ${result.stats.packages} packages.`;
+    const folder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    if (settings.report.autoWrite && folder) {
+      writeReport(result, defaultReportPath(folder), settings, version)
+        .then((file) => output.appendLine(`Wrote report to ${file}`))
+        .catch((e: Error) => output.appendLine(`Could not write report: ${e.message}`));
+    }
   };
 
   context.subscriptions.push(
@@ -49,7 +57,7 @@ export function activate(context: vscode.ExtensionContext): DepThreatApi {
     status,
     registerHover(diagnostics),
     registerCodeActions(diagnostics),
-    ...registerCommands(service, tree, view),
+    ...registerCommands(service, tree, view, version),
     service.onDidScan(render),
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (e.affectsConfiguration('depthreat') && service.lastResult) render(service.lastResult);
