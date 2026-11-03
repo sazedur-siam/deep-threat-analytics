@@ -6,6 +6,12 @@ All notable changes to this extension are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-11-03
+
+### Fixed
+
+- The Marketplace listing no longer shows a "Preview" badge; 1.0 is a stable release.
+
 ## [1.0.0] - 2026-11-03
 
 First stable release (1.0.0) on the Visual Studio Marketplace.
