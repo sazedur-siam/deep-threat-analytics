@@ -116,6 +116,7 @@ The status bar shows the result of the last scan and turns red when a policy fai
 | ------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
 | `DepThreat: Scan Workspace`                | Scan every manifest in the workspace                                                                   |
 | `DepThreat: Scan This Manifest`            | Scan the selected or open manifest                                                                     |
+| `DepThreat: Scan Installed Extensions`     | Scan the extensions installed in your editor (VS Code, Cursor, Windsurf, VSCodium)                     |
 | `DepThreat: Export Report (Markdown)`      | Save a readable report of the last scan (summary, severities, policy violations, findings per package) |
 | `DepThreat: Export Findings (JSON)`        | Save the last scan's findings, violations and stats                                                    |
 | `DepThreat: Create or Open Project Config` | Create `.depthreat/config.yaml` from a commented template                                              |
@@ -123,6 +124,15 @@ The status bar shows the result of the last scan and turns red when a policy fai
 | `DepThreat: Clear Scan Cache`              | Forget cached per-package results                                                                      |
 
 Results are cached per package version and rule set, so rescans only re-read packages that changed.
+
+### Scan your installed extensions
+
+Malicious editor extensions are a growing attack route: the GlassWorm campaign spread through VS Code and Open VSX extensions that stole credentials and crypto wallets. Run **DepThreat: Scan Installed Extensions** from the Command Palette or the sidebar's `...` menu to check the extensions installed in your editor with the same rules used for dependencies.
+
+- **Editors:** the editor you are running (VS Code, Insiders, Cursor, Windsurf, VSCodium or a remote server), plus any other of these installed under your home folder. Extensions are read from each editor's `extensions/extensions.json`.
+- **What it checks:** each extension's own code **and its bundled `node_modules`**, with all built-in rules (invisible Unicode payloads, credential theft, exfiltration, download-and-execute, …). It also flags extensions that activate on every startup (`"*"`), `vscode:uninstall` scripts (high when they download or run code), and lookalike IDs of popular extensions such as `esbenp.prettier-vscod`.
+- **Results** appear in the sidebar as "Installed extensions — VS Code (~/.vscode/extensions)", with diagnostics on that `extensions.json`. Ignores and allowlists go to your workspace's `.depthreat/config.yaml`.
+- Like everything else, extension code is **only read, never executed**, and nothing is sent anywhere. DepThreat skips itself, since its own bundle contains the detection patterns.
 
 ### Markdown report
 
@@ -257,6 +267,7 @@ otherpkg>=2     # depthreat-ignore[exec/python-shell, obfuscation/*]
 - **Detection is pattern-based, not a full program analysis.** Code that builds names at runtime can evade rules, and some legitimate packages can match. Correlated rules and severities are designed to keep false positives low.
 - **Patterns match line by line.** `scope: file` and `scope: package` correlate across lines, but a single pattern cannot span lines.
 - **Unsupported install layouts:** Yarn Plug'n'Play (no `node_modules`) and Python packages installed outside a virtual environment are not scanned unless the interpreter can be queried (trusted workspaces only).
+- **Installed extensions:** files over `depthreat.maxFileSizeKB` (default 1 MB) are skipped, which can include a large bundled `extension.js`; extensions activated with `onStartupFinished` are not flagged (only `"*"`); editors without an `extensions.json` (very old versions) are not supported.
 - **Java:** only libraries with a downloaded `-sources.jar` get code scanning; the rest get the OSV and registry checks. Kotlin sources and versions inherited from parent POMs are not resolved yet.
 
 ## Roadmap
@@ -269,6 +280,7 @@ otherpkg>=2     # depthreat-ignore[exec/python-shell, obfuscation/*]
 - [x] 2026 attack coverage: invisible Unicode, IDE/AI-agent/CI tampering, worm self-publishing, CI and cloud secret theft, messenger session theft, blockchain C2, disk wipers, download-and-execute
 - [x] Stable 1.0 release on the Visual Studio Marketplace
 - [x] Go, Rust, PHP and Java
+- [x] Scan installed VS Code, Cursor and Windsurf extensions
 - [ ] SARIF export
 
 ## Development
