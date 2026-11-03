@@ -6,6 +6,22 @@ All notable changes to this extension are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-11-03
+
+### Added
+
+- **Scan Installed Extensions**: `DepThreat: Scan Installed Extensions` checks the extensions
+  installed in VS Code, Insiders, Cursor, Windsurf, VSCodium and remote servers, including their
+  bundled `node_modules`, with all built-in rules. It also flags startup-activated extensions,
+  `vscode:uninstall` scripts, and lookalike IDs of 355 popular extensions.
+- Releases can now also be published to Open VSX (for Cursor, Windsurf, VSCodium and Gitpod), with a
+  publishing guide in `docs/PUBLISHING.md`.
+
+### Changed
+
+- Marketplace listing: new description and keywords, a demo GIF and screenshots, and an
+  Installation section in the README.
+
 ## [1.0.1] - 2026-11-03
 
 ### Fixed
