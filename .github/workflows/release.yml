@@ -4,7 +4,9 @@ name: Release
 # The VSIX is packaged once and the same file goes to both registries and the GitHub release.
 # Repository secrets (see docs/PUBLISHING.md):
 #   VSCE_PAT  Azure DevOps token with the Marketplace > Manage scope
-#   OVSX_PAT  Open VSX access token for the MdSazedurRahman namespace (optional: skipped when not set)
+#   OVSX_PAT  Open VSX access token for the MdSazedurRahman namespace
+# A registry whose secret is not set is skipped, so a tag still produces the GitHub release with the VSIX.
+# --skip-duplicate makes a re-run safe after one registry already accepted this version.
 on:
   push:
     tags: ['v*']
@@ -32,20 +34,28 @@ jobs:
           minor=$(node -p "require('./package.json').version.split('.')[1]")
           if [ $((minor % 2)) -eq 1 ]; then flag=--pre-release; else flag=; fi
           npx vsce package $flag --out deep-threat-analytics.vsix
-      - name: Publish to the Visual Studio Marketplace
+      - name: Check which registry tokens are configured
+        id: tokens
+        # Secrets cannot be used in `if:` directly. Only true/false leaves this step, never the token.
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
-        run: npx vsce publish --packagePath deep-threat-analytics.vsix
-      - name: Check for the Open VSX token
-        id: tokens
-        env:
           OVSX_PAT: ${{ secrets.OVSX_PAT }}
         run: |
+          if [ -n "$VSCE_PAT" ]; then
+            echo "vsce=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::VSCE_PAT is not set; skipping the Visual Studio Marketplace."
+          fi
           if [ -n "$OVSX_PAT" ]; then
             echo "ovsx=true" >> "$GITHUB_OUTPUT"
           else
             echo "::notice::OVSX_PAT is not set; skipping Open VSX."
           fi
+      - name: Publish to the Visual Studio Marketplace
+        if: steps.tokens.outputs.vsce == 'true'
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: npx vsce publish --packagePath deep-threat-analytics.vsix --skip-duplicate
       - name: Publish to Open VSX
         if: steps.tokens.outputs.ovsx == 'true'
         env:
