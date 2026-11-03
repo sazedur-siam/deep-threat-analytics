@@ -1,0 +1,12 @@
+{
+  "name": "color-theme-glow",
+  "displayName": "Glow Theme (fixture)",
+  "publisher": "glassworm-sample",
+  "version": "1.0.3",
+  "engines": { "vscode": "^1.90.0" },
+  "main": "./lib/extension.js",
+  "activationEvents": ["onStartupFinished"],
+  "contributes": {
+    "themes": [{ "label": "Glow", "uiTheme": "vs-dark", "path": "./themes/glow.json" }]
+  }
+}

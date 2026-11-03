@@ -11,6 +11,7 @@ import {
   fixedVersionEdit,
   type DepAnchor,
 } from './model';
+import { displayPath } from './scanService';
 
 export const DIAGNOSTIC_SOURCE = 'DepThreat';
 
@@ -84,6 +85,8 @@ export const MANIFEST_SELECTOR: vscode.DocumentSelector = [
   { scheme: 'file', pattern: '**/pom.xml' },
   { scheme: 'file', pattern: '**/build.gradle' },
   { scheme: 'file', pattern: '**/build.gradle.kts' },
+  // An editor's installed-extensions manifest (Scan Installed Extensions).
+  { scheme: 'file', pattern: '**/extensions/extensions.json' },
 ];
 
 export function registerHover(presenter: DiagnosticsPresenter): vscode.Disposable {
@@ -159,7 +162,7 @@ export function registerCodeActions(presenter: DiagnosticsPresenter): vscode.Dis
         if (top?.location) {
           const line = top.location.range.startLine + 1;
           add(
-            `Open ${top.package.name} code (${vscode.workspace.asRelativePath(top.location.file)}:${line})`,
+            `Open ${top.package.name} code (${displayPath(top.location.file)}:${line})`,
             'depthreat.openFinding',
             [top],
           );

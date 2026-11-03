@@ -98,6 +98,17 @@ const POLICIES: Record<EcosystemId, SquatPolicy> = {
     },
     strict: true,
   },
+  // Extension ids are publisher.name (case-insensitive). Publisher and name are compared
+  // separately, so the same name from an unrelated publisher is not a squat, but a look-alike
+  // publisher (ms-pythom.python) or a look-alike name (esbenp.prettier-vscod) is.
+  vscode: {
+    normalize: lower,
+    parts: (n) => {
+      const dot = n.indexOf('.');
+      return dot < 0 ? [n] : [n.slice(0, dot), n.slice(dot + 1)];
+    },
+    strict: true,
+  },
 };
 
 /** A versioned or short-named sibling of the target, which is not a squat (see SquatPolicy.strict). */

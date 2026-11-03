@@ -197,6 +197,52 @@ function scanComposerManifest(ctx: Ctx, file: string, text: string): Finding[] {
   ];
 }
 
+/**
+ * Editor extensions have no install scripts, but two package.json fields make code run without
+ * the user doing anything: activation on `*` (every editor startup) and `vscode:uninstall`
+ * (runs in a separate Node process after the extension is removed).
+ */
+function scanExtensionManifest(ctx: Ctx, file: string, text: string): Finding[] {
+  const root = parseTree(text);
+  if (!root) return [];
+  const lines = new LineIndex(text);
+  const out: Finding[] = [];
+  const events = findNodeAtLocation(root, ['activationEvents']);
+  const star = events?.type === 'array' ? events.children?.find((n) => n.value === '*') : undefined;
+  if (star) {
+    out.push(
+      finding(
+        ctx,
+        file,
+        'install-hook/vscode-startup-activation',
+        'Activates on every editor startup',
+        'low',
+        `${ctx.dep.name} activates on "*", so its code runs every time the editor starts, before you use any of its features`,
+        lines.range(star.offset, star.offset + star.length),
+        '"activationEvents": ["*"]',
+      ),
+    );
+  }
+  const uninstall = findNodeAtLocation(root, ['scripts', 'vscode:uninstall']);
+  if (typeof uninstall?.value === 'string') {
+    const script = uninstall.value;
+    const dangerous = DANGEROUS_SCRIPT.test(script);
+    out.push(
+      finding(
+        ctx,
+        file,
+        'install-hook/vscode-uninstall-script',
+        dangerous ? 'Uninstall script downloads or runs code' : 'Runs a script on uninstall',
+        dangerous ? 'high' : 'medium',
+        `${ctx.dep.name} runs "vscode:uninstall" when it is removed: ${trimEvidence(script, 120)}`,
+        lines.range(uninstall.offset, uninstall.offset + uninstall.length),
+        script,
+      ),
+    );
+  }
+  return out;
+}
+
 function scanPth(ctx: Ctx, file: string, text: string): Finding[] {
   const lines = new LineIndex(text);
   const known = KNOWN_PTH.some((re) => re.test(path.basename(file)));
@@ -223,7 +269,8 @@ function scanPth(ctx: Ctx, file: string, text: string): Finding[] {
 
 /**
  * Detect code that runs automatically when a package is installed or imported by the
- * interpreter: npm lifecycle scripts, setup.py side effects and executable .pth files.
+ * interpreter: npm lifecycle scripts, setup.py side effects and executable .pth files, plus
+ * editor extensions that start with the editor or run a script on uninstall.
  */
 export async function scanInstallHooks(
   dep: ResolvedDep,
@@ -248,10 +295,16 @@ export async function scanInstallHooks(
       base === 'composer.json' &&
       dep.installPath !== undefined &&
       path.dirname(file) === dep.installPath;
+    const isExtensionManifest =
+      dep.ecosystem === 'vscode' &&
+      base === 'package.json' &&
+      dep.installPath !== undefined &&
+      path.dirname(file) === dep.installPath;
     const relevant =
       isRootManifest ||
       isBuildScript ||
       isComposerManifest ||
+      isExtensionManifest ||
       (dep.ecosystem === 'pypi' && (base === 'setup.py' || base.endsWith('.pth')));
     if (!relevant) continue;
     let text: string;
@@ -265,6 +318,7 @@ export async function scanInstallHooks(
       out.push(...scanNpmManifest(ctx, file, text, gyp));
     } else if (isBuildScript) out.push(...scanBuildRs(ctx, file, text));
     else if (isComposerManifest) out.push(...scanComposerManifest(ctx, file, text));
+    else if (isExtensionManifest) out.push(...scanExtensionManifest(ctx, file, text));
     else if (base === 'setup.py') out.push(...scanSetupPy(ctx, file, text));
     else out.push(...scanPth(ctx, file, text));
   }

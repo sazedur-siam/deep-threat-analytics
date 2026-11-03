@@ -1,0 +1,12 @@
+{
+  "name": "word-count",
+  "displayName": "Word Count (fixture)",
+  "publisher": "clean-sample",
+  "version": "1.0.0",
+  "engines": { "vscode": "^1.90.0" },
+  "main": "./lib/extension.js",
+  "activationEvents": ["onLanguage:markdown"],
+  "contributes": {
+    "commands": [{ "command": "wordCount.show", "title": "Show Word Count" }]
+  }
+}

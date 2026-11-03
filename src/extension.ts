@@ -6,7 +6,7 @@ import { createPackageChecks } from './scanners/packageChecks';
 import { registerCommands } from './ui/commands';
 import { DiagnosticsPresenter, registerCodeActions, registerHover } from './ui/diagnostics';
 import { buildTree, summarizeScan, type TreeNode } from './ui/model';
-import { currentSettings, ScanService } from './ui/scanService';
+import { currentSettings, manifestLabel, ScanService } from './ui/scanService';
 import { defaultReportPath, writeReport } from './ui/reportWriter';
 import { FindingsTree, StatusBar } from './ui/treeView';
 
@@ -35,7 +35,7 @@ export function activate(context: vscode.ExtensionContext): DepThreatApi {
   const render = (result: ScanResult) => {
     const settings = currentSettings();
     diagnostics.update(result, settings);
-    tree.update(buildTree(result, settings.minSeverity, (p) => vscode.workspace.asRelativePath(p)));
+    tree.update(buildTree(result, settings.minSeverity, manifestLabel));
     const summary = summarizeScan(result, settings.minSeverity);
     status.show(summary);
     view.message = summary.count
@@ -57,7 +57,7 @@ export function activate(context: vscode.ExtensionContext): DepThreatApi {
     status,
     registerHover(diagnostics),
     registerCodeActions(diagnostics),
-    ...registerCommands(service, tree, view, version),
+    ...registerCommands(service, tree, view, version, path.dirname(context.extensionPath)),
     service.onDidScan(render),
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (e.affectsConfiguration('depthreat') && service.lastResult) render(service.lastResult);

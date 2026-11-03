@@ -164,9 +164,15 @@ export function vulnToFinding(v: OsvVuln, pkg: PackageRef): Finding {
   };
 }
 
+/** OSV.dev has no ecosystem for editor extensions, so they are never sent there. */
+export function hasOsvData(ecosystem: EcosystemId): boolean {
+  return ecosystem !== 'vscode';
+}
+
 /**
  * Look up known vulnerabilities on OSV.dev. Only ecosystem, name and version are sent.
- * Returns immediately (no network) when `opts.enabled` is false. Never throws on network errors.
+ * Returns immediately (no network) when `opts.enabled` is false or nothing is left to look up
+ * (ecosystems OSV does not cover are skipped). Never throws on network errors.
  */
 export async function queryOsv(
   deps: readonly PackageRef[],
@@ -176,8 +182,10 @@ export async function queryOsv(
   if (!opts.enabled) return { findings: [], errors: [] };
   const unique = new Map<string, PackageRef>();
   for (const d of deps) {
+    if (!hasOsvData(d.ecosystem) || !osvEcosystemOf(d.ecosystem)) continue;
     if (isConcreteVersion(d.version)) unique.set(`${d.ecosystem}:${d.name}@${d.version}`, d);
   }
+  if (!unique.size) return { findings: [], errors: [] };
   const pkgs = [...unique.values()];
   const errors: string[] = [];
   const idsByPkg = new Map<PackageRef, Set<string>>();

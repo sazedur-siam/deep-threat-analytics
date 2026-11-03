@@ -30,7 +30,8 @@ export const LANGUAGES = [
 ] as const;
 export type Language = (typeof LANGUAGES)[number];
 
-export type EcosystemId = 'npm' | 'pypi' | 'go' | 'cargo' | 'maven' | 'composer';
+/** `vscode` = extensions installed in VS Code and its forks (Cursor, Windsurf, VSCodium, …). */
+export type EcosystemId = 'npm' | 'pypi' | 'go' | 'cargo' | 'maven' | 'composer' | 'vscode';
 
 /** Zero-based, end-exclusive range inside a text file. */
 export interface SourceRange {

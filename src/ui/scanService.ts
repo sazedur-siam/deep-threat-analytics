@@ -1,3 +1,4 @@
+import * as os from 'node:os';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import type { EcosystemAdapter } from '../adapters/adapter';
@@ -7,6 +8,12 @@ import { npmAdapter } from '../adapters/npm';
 import { phpAdapter } from '../adapters/php';
 import { pythonAdapter } from '../adapters/python';
 import { rustAdapter } from '../adapters/rust';
+import {
+  extensionsManifestLabel,
+  isExtensionsManifest,
+  tildify,
+  vscodeExtensionsAdapter,
+} from '../adapters/vscodeExtensions';
 import {
   CONFIG_DIR,
   EMPTY_CONFIG,
@@ -25,7 +32,22 @@ export const ADAPTERS: readonly EcosystemAdapter[] = [
   rustAdapter,
   phpAdapter,
   javaAdapter,
+  // No manifest globs: only takes part when Scan Installed Extensions passes extensions.json in.
+  vscodeExtensionsAdapter,
 ];
+
+/** Workspace-relative path, or `~/…` for files outside the workspace (installed extensions). */
+export function displayPath(file: string): string {
+  const rel = vscode.workspace.asRelativePath(file);
+  return path.isAbsolute(rel) ? tildify(rel, os.homedir()) : rel;
+}
+
+/** Findings-tree label for a manifest. */
+export function manifestLabel(manifestPath: string): string {
+  return isExtensionsManifest(manifestPath)
+    ? extensionsManifestLabel(manifestPath, os.homedir())
+    : displayPath(manifestPath);
+}
 
 /** Builds the online checks enabled in settings (filled in by the OSV/reputation layer). */
 export type OnlineFactory = (

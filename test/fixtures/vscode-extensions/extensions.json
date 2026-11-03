@@ -1,0 +1,38 @@
+[
+  {
+    "identifier": { "id": "glassworm-sample.color-theme-glow", "uuid": "00000000-0000-0000-0000-000000000001" },
+    "version": "1.0.3",
+    "relativeLocation": "glassworm-sample.color-theme-glow-1.0.3",
+    "metadata": { "installedTimestamp": 1767225600000, "source": "gallery" }
+  },
+  {
+    "identifier": { "id": "devtools-sample.ssh-helper", "uuid": "00000000-0000-0000-0000-000000000002" },
+    "version": "0.2.0",
+    "relativeLocation": "devtools-sample.ssh-helper-0.2.0",
+    "metadata": { "installedTimestamp": 1767225600000, "source": "gallery" }
+  },
+  {
+    "identifier": { "id": "esbenp.prettier-vscod", "uuid": "00000000-0000-0000-0000-000000000003" },
+    "version": "11.0.0",
+    "relativeLocation": "esbenp.prettier-vscod-11.0.0",
+    "metadata": { "installedTimestamp": 1767225600000, "source": "vsix" }
+  },
+  {
+    "identifier": { "id": "Clean-Sample.word-count", "uuid": "00000000-0000-0000-0000-000000000004" },
+    "version": "1.0.0",
+    "relativeLocation": "clean-sample.word-count-1.0.0",
+    "metadata": { "installedTimestamp": 1767225600000, "source": "gallery" }
+  },
+  {
+    "identifier": { "id": "escape-sample.traversal" },
+    "version": "6.6.6",
+    "relativeLocation": "../../escape",
+    "metadata": { "installedTimestamp": 1767225600000, "source": "vsix" }
+  },
+  {
+    "identifier": { "id": "MdSazedurRahman.deep-threat-analytics" },
+    "version": "1.0.1",
+    "relativeLocation": "mdsazedurrahman.deep-threat-analytics-1.0.1",
+    "metadata": { "installedTimestamp": 1767225600000, "source": "gallery" }
+  }
+]

@@ -1,10 +1,10 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import * as path from 'node:path';
-import * as vscode from 'vscode';
 import { CONFIG_DIR } from '../config/projectConfig';
 import type { DepThreatSettings } from '../config/settings';
 import type { ScanResult } from '../core/engine';
 import { renderMarkdownReport } from '../report/markdown';
+import { displayPath } from './scanService';
 
 export const REPORT_FILE = 'report.md';
 
@@ -23,7 +23,7 @@ export async function writeReport(
   const markdown = renderMarkdownReport(result, {
     generatedAt: new Date(),
     minSeverity: settings.minSeverity,
-    relative: (p) => vscode.workspace.asRelativePath(p),
+    relative: displayPath,
     ...(extensionVersion ? { extensionVersion } : {}),
   });
   await mkdir(path.dirname(file), { recursive: true });

@@ -2,7 +2,9 @@ import * as assert from 'node:assert';
 import { existsSync, readFileSync } from 'node:fs';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
+import type { ScanResult } from '../../src/core/engine';
 import type { DepThreatApi } from '../../src/extension';
+import { makeExtensionsDir } from '../helpers/vscodeExtensions';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -156,6 +158,115 @@ suite('DepThreat Analytics', () => {
   test('scanning a non-manifest file does nothing', async () => {
     const other = vscode.Uri.file(path.join(workspaceRoot(), 'package-lock.json'));
     const result = await vscode.commands.executeCommand('depthreat.scanManifest', other);
+    assert.strictEqual(result, undefined);
+  });
+});
+
+suite('Installed extensions', () => {
+  let dir: string;
+  const manifest = () => vscode.Uri.file(path.join(dir, 'extensions.json'));
+  const idLine = (id: string) =>
+    readFileSync(manifest().fsPath, 'utf8')
+      .split('\n')
+      .findIndex((l) => l.includes(`"${id}"`));
+
+  suiteSetup(async () => {
+    const ext = vscode.extensions.getExtension('MdSazedurRahman.deep-threat-analytics');
+    assert.ok(ext, 'extension not found');
+    // A copy under a `.vscode/extensions` folder, like the real one in the home directory.
+    dir = await makeExtensionsDir(
+      path.join(ext.extensionPath, 'test', 'fixtures', 'vscode-extensions'),
+      '.vscode',
+    );
+  });
+
+  test('registers the command', async () => {
+    await api();
+    assert.ok((await vscode.commands.getCommands(true)).includes('depthreat.scanExtensions'));
+  });
+
+  test('scans the given extensions folders', async () => {
+    const result = await vscode.commands.executeCommand<ScanResult | undefined>(
+      'depthreat.scanExtensions',
+      [dir, dir],
+    );
+    assert.ok(result, 'scan returned nothing');
+    assert.deepStrictEqual(
+      result.manifests.map((m) => m.manifestPath),
+      [manifest().fsPath],
+    );
+    const flagged = new Set(
+      result.findings.filter((f) => !f.suppressed).map((f) => f.package.name),
+    );
+    for (const id of [
+      'glassworm-sample.color-theme-glow',
+      'devtools-sample.ssh-helper',
+      'esbenp.prettier-vscod',
+    ]) {
+      assert.ok(flagged.has(id), id);
+    }
+    assert.ok(!flagged.has('clean-sample.word-count'));
+    assert.ok(!flagged.has('mdsazedurrahman.deep-threat-analytics'));
+    assert.ok(
+      result.findings.some((f) => f.ruleId === 'obfuscation/invisible-unicode-payload'),
+      'no GlassWorm finding',
+    );
+    assert.ok(result.findings.some((f) => f.ruleId === 'install-hook/vscode-uninstall-script'));
+  });
+
+  test('labels the tree root by editor', async () => {
+    const roots = (await api()).treeRoots.filter((n) => n.kind === 'manifest');
+    assert.strictEqual(roots.length, 1);
+    const [root] = roots;
+    assert.match(root!.label, /^Installed extensions — VS Code \(.*\.vscode[/\\]extensions\)$/);
+    assert.ok(root!.children.some((c) => c.label === 'devtools-sample.ssh-helper@0.2.0'));
+  });
+
+  test('puts diagnostics and hovers on extension ids in extensions.json', async () => {
+    const diags = vscode.languages
+      .getDiagnostics(manifest())
+      .filter((d) => d.source === 'DepThreat');
+    const line = idLine('devtools-sample.ssh-helper');
+    const stealer = diags.find((d) => d.range.start.line === line);
+    assert.ok(stealer, 'no diagnostic on the credential stealer');
+    assert.strictEqual(stealer.severity, vscode.DiagnosticSeverity.Error);
+    assert.ok(!diags.some((d) => d.range.start.line === idLine('Clean-Sample.word-count')));
+
+    const doc = await vscode.workspace.openTextDocument(manifest());
+    const hovers = await vscode.commands.executeCommand<vscode.Hover[]>(
+      'vscode.executeHoverProvider',
+      doc.uri,
+      new vscode.Position(line, stealer.range.start.character + 2),
+    );
+    const text = hovers
+      .flatMap((h) => h.contents)
+      .map((c) => (typeof c === 'string' ? c : 'value' in c ? c.value : ''))
+      .join('\n');
+    assert.match(text, /devtools-sample\.ssh-helper/);
+  });
+
+  test('ignoring an extension finding writes the workspace config, not the extensions folder', async () => {
+    await vscode.commands.executeCommand('depthreat.ignoreRule', {
+      manifestPath: manifest().fsPath,
+      ecosystem: 'vscode',
+      name: 'devtools-sample.ssh-helper',
+      ruleId: 'install-hook/vscode-startup-activation',
+    });
+    assert.ok(!existsSync(path.join(dir, '.depthreat')));
+    assert.match(
+      readFileSync(path.join(workspaceRoot(), '.depthreat', 'config.yaml'), 'utf8'),
+      /package: vscode:devtools-sample\.ssh-helper, rule: install-hook\/vscode-startup-activation/,
+    );
+    const finding = (await api()).lastResult?.findings.find(
+      (f) => f.ruleId === 'install-hook/vscode-startup-activation',
+    );
+    assert.ok(finding?.suppressed, 'finding should be suppressed after rescan');
+  });
+
+  test('ignores folders without an extensions.json', async () => {
+    const result = await vscode.commands.executeCommand('depthreat.scanExtensions', [
+      path.join(dir, 'clean-sample.word-count-1.0.0'),
+    ]);
     assert.strictEqual(result, undefined);
   });
 });

