@@ -5,11 +5,37 @@
 
 **See what your dependencies actually do, not just which CVEs they have.**
 
-DepThreat Analytics is a Visual Studio Code extension that reads the source code of the packages installed in your project. It flags behavior that could compromise your machine or leak data: sending environment variables over the network, reading SSH keys or cloud credentials, spawning shells, running obfuscated code, or hooking into install scripts.
+DepThreat Analytics is a Visual Studio Code extension that reads the source code of the packages installed in your project. It flags behavior that could compromise your machine or leak data: sending environment variables or credentials over the network, reading SSH keys or cloud tokens, spawning shells, running obfuscated or invisible-Unicode code, or hooking into install scripts. Everything runs locally, and dependency code is never executed.
 
-Its rules, allowlists, severities and policies are all yours to customize.
+- **108 checks** (code rules, heuristics and package-reputation signals), tuned against real 2025–2026 supply-chain attacks such as Shai-Hulud, GlassWorm and MALFEX.
+- **Six ecosystems**: npm / pnpm / Yarn, Python (PyPI), Go, Rust (Cargo), PHP (Composer) and Java (Maven / Gradle).
+- **Results where you work**: inline diagnostics with hovers and Quick Fixes, a findings sidebar, policy gates, and a Markdown report you can share.
+- **Opt-in online checks**: known CVEs from OSV.dev and package reputation. Typosquat detection works offline.
+- **Yours to customize**: rules, allowlists, severities and policies.
 
 > **Note:** Detection is pattern-based and tuned to avoid noise, but it can still flag legitimate packages. Use the Quick Fixes to ignore or allowlist them, and please [report false positives](https://github.com/sazedur-siam/deep-threat-analytics/issues).
+
+## See it in action
+
+![Scanning a project: flagged dependencies get squiggles, hovers explain the finding, Quick Fixes and the sidebar show the details](media/screenshots/demo.gif)
+
+**Inline diagnostics and hovers** on each flagged dependency in the manifest:
+
+![Hover on a flagged npm dependency showing that it sends environment variables over the network](media/screenshots/diagnostics-hover.png)
+
+**Quick Fixes** to jump to the offending code, ignore a rule or allowlist the package:
+
+![Quick Fix menu on a flagged dependency](media/screenshots/quick-fixes.png)
+
+**The findings sidebar**, with policy violations on top and every finding grouped by package and severity:
+
+![DepThreat Analytics sidebar with policy violations and findings per package](media/screenshots/sidebar.png)
+
+**A Markdown report** of the scan to share or attach to a review:
+
+![Markdown report preview with policy violations and findings by package](media/screenshots/report.png)
+
+_Screenshots use harmless test fixtures that only imitate malicious patterns._
 
 ## Why another dependency scanner?
 
