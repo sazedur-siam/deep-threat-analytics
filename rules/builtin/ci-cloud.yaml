@@ -1,0 +1,173 @@
+# CI and cloud secret theft: scraping CI runner memory, stealing cloud instance credentials,
+# dumping secret stores, running secret scanners and harvesting CI tokens.
+# Modeled on the 2026 @subql/common and Shai-Hulud incidents. Shared patterns are YAML anchors
+# (&name / *name) so the correlated rules stay in sync with the single-signal ones.
+
+# --- Process memory scraping ---------------------------------------------------------------
+# Reading another process's memory or environment. Covers /proc/<pid>/mem and
+# /proc/<pid>/environ built from templates, format strings or concatenation (but not
+# /proc/self/...), process_vm_readv and ptrace attach/peek.
+# The `not` patterns drop the places these names are *defined* rather than used: libc/nix
+# (Rust) and golang.org/x/sys/unix (Go) declare the syscall wrappers and PTRACE_* constants and
+# are among the most common dependencies in their ecosystems.
+- id: secrets-fs/process-memory-read
+  title: Reads another process's memory or environment
+  category: secrets-fs
+  severity: high
+  languages: ['*']
+  match:
+    any:
+      - regex: &mem-read '/proc/(?!self/|thread-self/)[^\s/''"`]+/(mem|environ)\b|[''"`]/proc/?[''"`].*[''"`]/?(mem|environ)[''"`]|\bprocess_vm_readv\b|\bPTRACE_(ATTACH|SEIZE|PEEKDATA|PEEKTEXT)\b|\bptrace::(attach|seize|read)\s*\(|\b(unix|syscall)\.(PtraceAttach|PtraceSeize|PtracePeekData|PtracePeekText|ProcessVMReadv)\s*\('
+    not:
+      - regex: '\bfn\s+process_vm_readv\b|\bfunc\s+(Ptrace\w*|ProcessVMReadv)\b|libc::process_vm_readv|Request::PTRACE_'
+      - regex: '\bPTRACE_\w+\s*(:\s*[\w:]+\s*)?=\s*(0x)?[\da-fA-F]+\b|#\s*define\s+PTRACE_|^\s*PTRACE_\w+\s*,?\s*$'
+    scope: line
+  message: "{package} reads another process's memory or environment in {file}, a technique used to steal secrets from CI runners"
+  references:
+    - https://man7.org/linux/man-pages/man5/proc_pid_mem.5.html
+
+# Memory scraping plus GitHub Actions runner markers in the same file: the @subql/common and
+# Shai-Hulud payloads located Runner.Worker and pulled masked secrets ("isSecret":true) out of
+# its memory.
+- id: secrets-fs/ci-runner-memory-scrape
+  title: Scrapes CI runner memory for secrets
+  category: secrets-fs
+  severity: critical
+  languages: ['*']
+  match:
+    all:
+      - regex: *mem-read
+      - regex: 'Runner\.(Worker|Listener)|\bACTIONS_RUNTIME_TOKEN\b|\bGITHUB_ACTIONS\b|\bisSecret\b'
+    scope: file
+  message: '{package} reads process memory and targets the GitHub Actions runner in {file}, which steals masked CI secrets'
+
+# --- Cloud instance metadata -----------------------------------------------------------------
+# The official cloud SDKs (aws-sdk / @aws-sdk/credential-provider-imds, botocore,
+# google-auth-library, @azure/identity, the Go and Java SDKs) legitimately talk to these
+# endpoints, so the endpoint alone is only `low`, and files that carry the SDKs' own
+# configuration knobs are skipped entirely. Severity goes up only when the same file also does
+# something no SDK does: sending data to a webhook/paste/tunnel/chat host or a hardcoded public
+# IP (critical), or dumping the whole environment (high). The correlated rules deliberately do
+# NOT honor the SDK markers, so a payload cannot silence them by mentioning those names.
+- id: network/cloud-metadata-access
+  title: Contacts a cloud instance metadata endpoint
+  category: network
+  severity: low
+  languages: ['*']
+  match:
+    all:
+      # AWS IMDS (IPv4/IPv6), ECS task credentials, GCP, Azure IMDS and Alibaba Cloud.
+      - regex: &cloud-metadata '169\.254\.169\.254|169\.254\.170\.2(?!\d)|fd00:ec2::254|100\.100\.100\.200|metadata\.google\.internal|computeMetadata/v1|/metadata/identity/oauth2/token|/latest/meta-data/iam/security-credentials|/latest/api/token'
+    not:
+      # Configuration knobs that only the official SDK credential providers implement.
+      - regex: 'AWS_EC2_METADATA_DISABLED|AWS_EC2_METADATA_SERVICE_ENDPOINT|AWS_CONTAINER_CREDENTIALS_(RELATIVE|FULL)_URI|ec2_metadata_service_endpoint|GCE_METADATA_(HOST|IP|ROOT)|IMDS_ENDPOINT|IDENTITY_ENDPOINT|MSI_ENDPOINT|AZURE_POD_IDENTITY_AUTHORITY_HOST'
+    scope: file
+  message: '{package} contacts a cloud instance metadata endpoint in {file}, which can hand out IAM credentials'
+
+- id: exfiltration/cloud-metadata-to-external
+  title: Sends cloud instance credentials to an outside endpoint
+  category: exfiltration
+  severity: critical
+  languages: ['*']
+  match:
+    all:
+      - regex: *cloud-metadata
+      # Webhook, paste, tunnel and chat hosts, or a hardcoded public IP. Private, loopback and
+      # link-local addresses (including the metadata IPs themselves) are excluded.
+      - regex: &exfil-dest 'webhook\.site|requestbin|pipedream\.net|beeceptor\.com|\.oast\.(fun|me|pro|live|site|online)|interact\.sh|burpcollaborator\.net|ngrok(-free)?\.(io|app)|trycloudflare\.com|\btransfer\.sh\b|\b0x0\.st\b|paste\.ee|pastebin\.com|discord(app)?\.com/api/webhooks|api\.telegram\.org/bot|hooks\.slack\.com/services|(https?|wss?|tcp)://(?!(127\.|0\.0\.0\.0|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.|100\.100\.100\.200|255\.))(\d{1,3}\.){3}\d{1,3}'
+    scope: file
+  message: '{package} queries a cloud metadata endpoint and sends data to an outside collection endpoint in {file}'
+
+- id: exfiltration/cloud-metadata-with-env-dump
+  title: Harvests cloud instance credentials and the environment
+  category: exfiltration
+  severity: high
+  languages: ['*']
+  match:
+    all:
+      - regex: *cloud-metadata
+      - regex: 'JSON\.stringify\(\s*process\.env\s*[,)]|Object\.(keys|entries|values)\(\s*process\.env\s*\)|json\.dumps\(\s*(dict\(\s*)?os\.environ|dict\(\s*os\.environ\s*\)|os\.environ\.items\(\s*\)|str\(\s*os\.environ\s*\)|\bos\.Environ\(\)|\benv::vars(_os)?\(\)|\bgetenv\(\s*\)|\b(json_encode|serialize|var_export|print_r)\(\s*\$_(ENV|SERVER)\b|\bSystem\.getenv\(\s*\)|\bprintenv\b'
+    scope: file
+  message: '{package} queries a cloud metadata endpoint and collects all environment variables in {file}'
+
+# --- Secret stores -----------------------------------------------------------------------------
+# Enumerating a secret store and reading every value: AWS Secrets Manager, HashiCorp Vault,
+# Kubernetes secrets, GCP Secret Manager and Azure Key Vault. The SDK client libraries define
+# both the list and the get operations (often in the same index file) and call their own
+# provider endpoints, so list + get alone does not fire at all. It is reported only when the
+# same file also sends data to a webhook/paste/tunnel/chat host or a hardcoded public IP, which
+# no SDK does. A Kubernetes secrets listing returns the values, so those endpoints count as both.
+- id: exfiltration/secret-store-dump
+  title: Dumps a cloud secret store to an outside endpoint
+  category: exfiltration
+  severity: high
+  languages: [javascript, typescript, python, go, rust, php, java, shell]
+  match:
+    all:
+      # List / enumerate.
+      - regex: '\bListSecrets(Command|Request)?\b|\blist_secrets\s*\(|\blistSecrets\s*\(|\blistPropertiesOfSecrets\s*\(|\blist_properties_of_secrets\s*\(|\blist_secret_for_all_namespaces\b|\blistSecretForAllNamespaces\b|\blist_namespaced_secret\b|\blistNamespacedSecret\b|\.Secrets\([^)]*\)\.List\(|/api/v1/(namespaces/[^/\s]+/)?secrets\b|\bkubectl\s+get\s+secrets?\b|[''"]LIST[''"]|[?&]list=true\b|\bvault\s+kv\s+list\b|\bgcloud\s+secrets\s+list\b|\baws\s+secretsmanager\s+list-secrets\b'
+      # Read values.
+      - regex: '\b(Batch)?GetSecretValue(Command|Request)?\b|\b(batch_)?get_secret_value\s*\(|\bgetSecretValue\s*\(|\baccess_secret_version\s*\(|\baccessSecretVersion\s*\(|\bAccessSecretVersion\(|\bread_secret_version\s*\(|\bgetSecret\s*\(|\bget_secret\s*\(|\bread_namespaced_secret\b|\breadNamespacedSecret\b|\.Secrets\([^)]*\)\.Get\(|/api/v1/(namespaces/[^/\s]+/)?secrets\b|\bkubectl\s+get\s+secrets?\b|/v1/[\w-]+/data/|\bvault\s+kv\s+get\b|\bgcloud\s+secrets\s+versions\s+access\b|\baws\s+secretsmanager\s+get-secret-value\b'
+      - regex: *exfil-dest
+    scope: file
+  message: '{package} enumerates and reads a secret store and sends data to an outside collection endpoint in {file}'
+
+# Shelling out to a cloud/cluster CLI to enumerate or read secrets. The SDKs never do this, and a
+# runtime dependency has no business doing it, but deployment helpers occasionally do, so this
+# is `medium` on its own.
+- id: secrets-fs/secret-store-cli
+  title: Reads a secret store through its CLI
+  category: secrets-fs
+  severity: medium
+  languages: ['*']
+  match:
+    any:
+      - regex: '\baws\s+secretsmanager\s+(list-secrets|get-secret-value|batch-get-secret-value)\b'
+      - regex: '\bkubectl\s+get\s+secrets?\b'
+      - regex: '\bvault\s+kv\s+(list|get)\b'
+      - regex: '\bgcloud\s+secrets\s+(list|versions\s+access)\b'
+      - regex: '\baz\s+keyvault\s+secret\s+(list|show)\b'
+    scope: line
+  message: '{package} reads a secret store through its command-line tool in {file}'
+
+# --- Secret scanners ---------------------------------------------------------------------------
+# Shai-Hulud downloaded TruffleHog and ran it over the whole disk to harvest tokens. A runtime
+# dependency has no reason to download or run a secret scanner. Packages that wrap these tools
+# (pre-commit hooks, lint plugins) are dev tools, and dev dependencies are not scanned by
+# default, so they rarely show up here.
+- id: secrets-fs/secret-scanner-abuse
+  title: Downloads or runs a secret scanner
+  category: secrets-fs
+  severity: high
+  languages: ['*']
+  match:
+    any:
+      # Release downloads.
+      - regex: 'releases/download/\S*\b(trufflehog|gitleaks|noseyparker)|github\.com/(trufflesecurity/trufflehog|gitleaks/gitleaks|praetorian-inc/noseyparker)/releases'
+      # Command lines that scan for secrets.
+      - regex: '\btrufflehog\s+(filesystem|git|github|gitlab|docker|s3|gcs|--json|--only-verified)\b|\bgitleaks\s+(detect|dir|git|protect)\b|\bnoseyparker\s+(scan|report)\b|\bdetect-secrets\s+scan\b|\bggshield\s+secret\s+scan\b'
+      # Process spawn whose arguments name the binary.
+      - regex: '\b(exec|execSync|execFile|execFileSync|spawn|spawnSync|system|popen|Popen|run|check_output|check_call|call|Command|Command::new|shell_exec|passthru|proc_open|ProcessBuilder|getRuntime\(\)\.exec)\s*\(.{0,80}\b(trufflehog|gitleaks|noseyparker)\b(?![-\w.])'
+    scope: line
+  message: '{package} downloads or runs a secret scanner in {file}, a technique used to harvest tokens from disk'
+  references:
+    - https://github.com/trufflesecurity/trufflehog
+
+# --- CI tokens in the environment ----------------------------------------------------------------
+# Reading CI/source-control tokens and registry/cloud secrets in the same file, plus sending
+# something over the network. Requiring one name from each of the two groups guarantees at least
+# two distinct token names (a single regex used twice could match the same name) and matches how
+# harvesters operate: grab the CI token and the publish/cloud credentials together. A file that
+# only uses, say, NPM_TOKEN to publish, or GITHUB_TOKEN to call the GitHub API, does not fire.
+- id: exfiltration/ci-token-harvest
+  title: Harvests CI and cloud tokens and sends network requests
+  category: exfiltration
+  severity: high
+  languages: [javascript, typescript, python, go, rust, php, java, shell]
+  match:
+    all:
+      - regex: '\b(GITHUB_TOKEN|GH_TOKEN|ACTIONS_ID_TOKEN_REQUEST_TOKEN|ACTIONS_RUNTIME_TOKEN|CI_JOB_TOKEN|CI_JOB_JWT|GITLAB_TOKEN|CIRCLE_TOKEN|BITBUCKET_TOKEN|BUILDKITE_AGENT_ACCESS_TOKEN|SYSTEM_ACCESSTOKEN)\b'
+      - regex: '\b(NPM_TOKEN|NODE_AUTH_TOKEN|PYPI_TOKEN|PYPI_API_TOKEN|TWINE_PASSWORD|CARGO_REGISTRY_TOKEN|AWS_SECRET_ACCESS_KEY|AWS_SESSION_TOKEN|AZURE_CLIENT_SECRET|GOOGLE_APPLICATION_CREDENTIALS|DOCKERHUB_TOKEN|DOCKER_PASSWORD|VAULT_TOKEN)\b'
+      - regex: '\bhttps?\.(request|get)\s*\(|\bfetch\s*\(|\baxios\b|\bgot\s*\(|XMLHttpRequest|\brequests\.(post|get|put)\s*\(|urllib\.request|\burlopen\s*\(|http\.client|\bhttpx\.|\bhttp\.(Post|PostForm|Get|Head|NewRequest(WithContext)?)\(|\bnet\.Dial(Timeout)?\(|\.Do\(\s*req\b|\b(reqwest|ureq|isahc|surf)::|\bhyper::Client|\bTcpStream::connect\(|\bcurl_exec\s*\(|\bfile_get_contents\s*\(\s*[''"]https?://|\bfsockopen\s*\(|\bstream_socket_client\s*\(|\bHttpURLConnection\b|\bHttpClient\.new|\.openConnection\(|\bnew\s+Socket\(|\bOkHttpClient\b|\bnew\s+HttpPost\(|\bcurl\s.*(\s-d\b|--data|\s-F\b|--form|\s-T\b|--upload-file)|\bwget\s.*--post-(data|file)'
+    scope: file
+  message: '{package} reads several CI and cloud tokens from the environment and sends network requests in {file}'
