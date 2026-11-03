@@ -10,10 +10,14 @@ All notable changes to this extension are documented here. The format follows
 
 First release (non-pre-release) on the Visual Studio Marketplace.
 
+### Added
+
+- **Markdown report**: `DepThreat: Export Report (Markdown)` and the `depthreat.report.autoWrite`
+  setting, which writes `.depthreat/report.md` after every scan.
+
 ### Changed
 
-- Published as a regular release so it installs without opting into pre-releases. Features are
-  the same as 0.1.0.
+- Published as a regular release so it installs without opting into pre-releases.
 - Renamed to **DepThreat Analytics** (the extension ID `MdSazedurRahman.deep-threat-analytics` is
   unchanged).
 
