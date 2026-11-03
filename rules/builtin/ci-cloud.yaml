@@ -86,6 +86,46 @@
   match:
     all:
       - regex: *cloud-metadata
-      - regex: &env-dump 'JSON\.stringify\(\s*process\.env\s*[,)]|Object\.(keys|entries|values)\(\s*process\.env\s*\)|json\.dumps\(\s*(dict\(\s*)?os\.environ|dict\(\s*os\.environ\s*\)|os\.environ\.items\(\s*\)|str\(\s*os\.environ\s*\)|\bos\.Environ\(\)|\benv::vars(_os)?\(\)|\bgetenv\(\s*\)|\b(json_encode|serialize|var_export|print_r)\(\s*\$_(ENV|SERVER)\b|\bSystem\.getenv\(\s*\)|\bprintenv\b'
+      - regex: 'JSON\.stringify\(\s*process\.env\s*[,)]|Object\.(keys|entries|values)\(\s*process\.env\s*\)|json\.dumps\(\s*(dict\(\s*)?os\.environ|dict\(\s*os\.environ\s*\)|os\.environ\.items\(\s*\)|str\(\s*os\.environ\s*\)|\bos\.Environ\(\)|\benv::vars(_os)?\(\)|\bgetenv\(\s*\)|\b(json_encode|serialize|var_export|print_r)\(\s*\$_(ENV|SERVER)\b|\bSystem\.getenv\(\s*\)|\bprintenv\b'
     scope: file
   message: '{package} queries a cloud metadata endpoint and collects all environment variables in {file}'
+
+# --- Secret stores -----------------------------------------------------------------------------
+# Enumerating a secret store and reading every value: AWS Secrets Manager, HashiCorp Vault,
+# Kubernetes secrets, GCP Secret Manager and Azure Key Vault. The SDK client libraries define
+# both the list and the get operations (often in the same index file) and call their own
+# provider endpoints, so list + get alone does not fire at all. It is reported only when the
+# same file also sends data to a webhook/paste/tunnel/chat host or a hardcoded public IP, which
+# no SDK does. A Kubernetes secrets listing returns the values, so those endpoints count as both.
+- id: exfiltration/secret-store-dump
+  title: Dumps a cloud secret store to an outside endpoint
+  category: exfiltration
+  severity: high
+  languages: [javascript, typescript, python, go, rust, php, java, shell]
+  match:
+    all:
+      # List / enumerate.
+      - regex: '\bListSecrets(Command|Request)?\b|\blist_secrets\s*\(|\blistSecrets\s*\(|\blistPropertiesOfSecrets\s*\(|\blist_properties_of_secrets\s*\(|\blist_secret_for_all_namespaces\b|\blistSecretForAllNamespaces\b|\blist_namespaced_secret\b|\blistNamespacedSecret\b|\.Secrets\([^)]*\)\.List\(|/api/v1/(namespaces/[^/\s]+/)?secrets\b|\bkubectl\s+get\s+secrets?\b|[''"]LIST[''"]|[?&]list=true\b|\bvault\s+kv\s+list\b|\bgcloud\s+secrets\s+list\b|\baws\s+secretsmanager\s+list-secrets\b'
+      # Read values.
+      - regex: '\b(Batch)?GetSecretValue(Command|Request)?\b|\b(batch_)?get_secret_value\s*\(|\bgetSecretValue\s*\(|\baccess_secret_version\s*\(|\baccessSecretVersion\s*\(|\bAccessSecretVersion\(|\bread_secret_version\s*\(|\bgetSecret\s*\(|\bget_secret\s*\(|\bread_namespaced_secret\b|\breadNamespacedSecret\b|\.Secrets\([^)]*\)\.Get\(|/api/v1/(namespaces/[^/\s]+/)?secrets\b|\bkubectl\s+get\s+secrets?\b|/v1/[\w-]+/data/|\bvault\s+kv\s+get\b|\bgcloud\s+secrets\s+versions\s+access\b|\baws\s+secretsmanager\s+get-secret-value\b'
+      - regex: *exfil-dest
+    scope: file
+  message: '{package} enumerates and reads a secret store and sends data to an outside collection endpoint in {file}'
+
+# Shelling out to a cloud/cluster CLI to enumerate or read secrets. The SDKs never do this, and a
+# runtime dependency has no business doing it, but deployment helpers occasionally do, so this
+# is `medium` on its own.
+- id: secrets-fs/secret-store-cli
+  title: Reads a secret store through its CLI
+  category: secrets-fs
+  severity: medium
+  languages: ['*']
+  match:
+    any:
+      - regex: '\baws\s+secretsmanager\s+(list-secrets|get-secret-value|batch-get-secret-value)\b'
+      - regex: '\bkubectl\s+get\s+secrets?\b'
+      - regex: '\bvault\s+kv\s+(list|get)\b'
+      - regex: '\bgcloud\s+secrets\s+(list|versions\s+access)\b'
+      - regex: '\baz\s+keyvault\s+secret\s+(list|show)\b'
+    scope: line
+  message: '{package} reads a secret store through its command-line tool in {file}'

