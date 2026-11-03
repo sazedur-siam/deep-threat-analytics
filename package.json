@@ -74,6 +74,12 @@
         "category": "DepThreat"
       },
       {
+        "command": "depthreat.exportReport",
+        "title": "Export Report (Markdown)",
+        "category": "DepThreat",
+        "icon": "$(markdown)"
+      },
+      {
         "command": "depthreat.exportFindings",
         "title": "Export Findings (JSON)",
         "category": "DepThreat",
@@ -165,9 +171,14 @@
           "group": "navigation@1"
         },
         {
-          "command": "depthreat.exportFindings",
+          "command": "depthreat.exportReport",
           "when": "view == depthreat.findings",
           "group": "navigation@2"
+        },
+        {
+          "command": "depthreat.exportFindings",
+          "when": "view == depthreat.findings",
+          "group": "1_more@0"
         },
         {
           "command": "depthreat.clearCache",
