@@ -12,7 +12,7 @@ First release (non-pre-release) on the Visual Studio Marketplace.
 
 ### Added
 
-- **45 new detections** for 2025–2026 supply-chain attacks:
+- **27 new detections** (25 rules, 2 heuristics) for 2025–2026 supply-chain attacks:
   - Invisible Unicode payloads (GlassWorm) and Trojan Source bidirectional characters.
   - Tampering with VS Code/Cursor settings, AI coding agent files (`CLAUDE.md`, `AGENTS.md`,
     MCP config), and CI workflow files; prompt injection aimed at AI agents.
