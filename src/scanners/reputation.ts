@@ -65,7 +65,7 @@ interface SquatPolicy {
    * Conservative matching for registries full of numbered and short-named siblings
    * (aws-sdk-s3/aws-sdk-sqs, maven-jar-plugin/maven-war-plugin, serde_json/serde_json5):
    * one edit at most, only for names of 5+ characters, never inside a token of 3 or fewer
-   * characters, and never for a trailing version number.
+   * characters, and never for adding or dropping a trailing version number.
    */
   strict?: boolean;
 }
@@ -102,7 +102,8 @@ const POLICIES: Record<EcosystemId, SquatPolicy> = {
 
 /** A versioned or short-named sibling of the target, which is not a squat (see SquatPolicy.strict). */
 function isSibling(name: string, target: string): boolean {
-  if (name.startsWith(target) && /^\d+$/.test(name.slice(target.length))) return true;
+  const [short, long] = name.length < target.length ? [name, target] : [target, name];
+  if (long.startsWith(short) && /^\d+$/.test(long.slice(short.length))) return true;
   const a = name.split(SEPARATORS);
   const b = target.split(SEPARATORS);
   if (a.length !== b.length || a.length < 2) return false;
