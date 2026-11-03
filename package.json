@@ -1,6 +1,6 @@
 {
   "name": "deep-threat-analytics",
-  "displayName": "Deep Threat Analytics",
+  "displayName": "DepThreat Analytics",
   "description": "Scans the source code of your dependencies for behavior that can compromise your system or leak data, plus known CVEs and package reputation.",
   "version": "0.2.0",
   "publisher": "MdSazedurRahman",
@@ -212,7 +212,7 @@
       "activitybar": [
         {
           "id": "depthreat",
-          "title": "Deep Threat Analytics",
+          "title": "DepThreat Analytics",
           "icon": "media/activity-bar.svg"
         }
       ]
@@ -223,7 +223,7 @@
           "id": "depthreat.findings",
           "name": "Findings",
           "icon": "media/activity-bar.svg",
-          "contextualTitle": "Deep Threat Analytics"
+          "contextualTitle": "DepThreat Analytics"
         }
       ]
     },
@@ -234,7 +234,7 @@
       }
     ],
     "configuration": {
-      "title": "Deep Threat Analytics",
+      "title": "DepThreat Analytics",
       "properties": {
         "depthreat.scanTransitive": {
           "type": "boolean",
