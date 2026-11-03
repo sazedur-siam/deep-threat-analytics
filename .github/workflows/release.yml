@@ -1,7 +1,10 @@
 name: Release
 
-# Publishes to the Visual Studio Marketplace when a version tag is pushed, e.g. `git tag v0.1.0`.
-# Requires the repository secret VSCE_PAT (Azure DevOps token with Marketplace > Manage scope).
+# Publishes to the Visual Studio Marketplace and Open VSX when a version tag is pushed, e.g. `git tag v0.1.0`.
+# The VSIX is packaged once and the same file goes to both registries and the GitHub release.
+# Repository secrets (see docs/PUBLISHING.md):
+#   VSCE_PAT  Azure DevOps token with the Marketplace > Manage scope
+#   OVSX_PAT  Open VSX access token for the MdSazedurRahman namespace (optional: skipped when not set)
 on:
   push:
     tags: ['v*']
@@ -25,13 +28,30 @@ jobs:
       - name: Package
         run: |
           # Odd minor versions are pre-releases (Marketplace convention); vsce marks this at package time.
+          # The flag is stored in the VSIX manifest, so both registries read it from the file.
           minor=$(node -p "require('./package.json').version.split('.')[1]")
           if [ $((minor % 2)) -eq 1 ]; then flag=--pre-release; else flag=; fi
           npx vsce package $flag --out deep-threat-analytics.vsix
-      - name: Publish
+      - name: Publish to the Visual Studio Marketplace
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
         run: npx vsce publish --packagePath deep-threat-analytics.vsix
+      - name: Check for the Open VSX token
+        id: tokens
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+        run: |
+          if [ -n "$OVSX_PAT" ]; then
+            echo "ovsx=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::OVSX_PAT is not set; skipping Open VSX."
+          fi
+      - name: Publish to Open VSX
+        if: steps.tokens.outputs.ovsx == 'true'
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+        # ovsx ignores --pre-release for a prepackaged VSIX; the pre-release flag comes from the VSIX manifest.
+        run: npx ovsx publish deep-threat-analytics.vsix --skip-duplicate
       - uses: softprops/action-gh-release@v2
         with:
           files: deep-threat-analytics.vsix
