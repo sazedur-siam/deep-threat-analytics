@@ -54,3 +54,46 @@
       - regex: '(^|[^.\w])(eval|exec)\s*\(\s*[^''"`)\s]|\bnew\s+Function\s*\(\s*[^''"`)\s]|\bvm\.(runInThisContext|runInNewContext|runInContext|compileFunction)\s*\(|\bnew\s+vm\.Script\s*\(|\bexecSync\s*\(\s*[^''"`)\s]'
     scope: file
   message: '{package} reads data from a blockchain RPC endpoint and executes code in {file}, a pattern used for blockchain command-and-control'
+
+# Wipers: only whole-disk, root or home-directory targets, so `rm -rf ./dist`,
+# `rm -rf node_modules` or `rm -rf /tmp/build` never match.
+- id: exec/destructive-command
+  title: Wipes disks, the home directory or backups
+  category: exec
+  severity: critical
+  languages: ['*']
+  match:
+    any:
+      # rm -rf / | /* | ~ | $HOME | /etc ... as a shell string.
+      - regex: '\brm\s+(-[\w-]+\s+)*(-[a-zA-Z]*[rR][a-zA-Z]*|--recursive)\s+(-[\w-]+\s+)*[''"]?(/|~|\$HOME|\$\{HOME\}|/(bin|boot|etc|home|usr|var|lib|root|opt|sys|Users))/?\*?(?=$|[\s''"`;&|)])'
+      # rm -rf / as an argument list: ["rm", "-rf", "/"], Command("rm").args(["-rf", "~"]).
+      - regex: '[''"]rm[''"](\s*,\s*|\)\s*\.\s*args?\(\s*&?\[?\s*)[''"]-[a-zA-Z]*[rR][a-zA-Z]*[''"]((\s*,\s*|\)\s*\.\s*args?\(\s*&?\[?\s*)[''"]--no-preserve-root[''"])?(\s*,\s*|\)\s*\.\s*args?\(\s*&?\[?\s*)[''"](/|~|/(bin|boot|etc|home|usr|var|lib|root|opt|sys|Users))/?\*?[''"]'
+      - regex: '--no-preserve-root\b'
+      # Raw writes or filesystem creation on block devices.
+      - regex: '\bdd\b[^\n]*\bof=/dev/(sd[a-z]|nvme\d|hd[a-z]|xvd[a-z]|vd[a-z]|mmcblk\d|r?disk\d)'
+      - regex: '\b(mkfs(\.\w+)?|shred|wipefs)\b[^\n]*\s[''"]?/dev/(sd[a-z]|nvme\d|hd[a-z]|xvd[a-z]|vd[a-z]|mmcblk\d|r?disk\d)'
+      # Fork bomb.
+      - regex: ':\(\)\s*\{\s*:\s*\|\s*:\s*&\s*\}\s*;\s*:'
+      # Recursive delete of the filesystem root or home directory through language APIs.
+      - regex: '\bshutil\.rmtree\s*\(\s*([''"](/|~)[''"]|os\.path\.expanduser\(\s*[''"]~[''"]\s*\)|(pathlib\.)?Path\.home\(\)|os\.environ\[[''"](HOME|USERPROFILE)[''"]\])\s*[,)]'
+      - regex: '\bos\.RemoveAll\(\s*("/"|"~"|os\.Getenv\("(HOME|USERPROFILE)"\))\s*\)'
+      - regex: '\bremove_dir_all\(\s*("/"|"~"|(dirs::)?home_dir\(\)|env::var\("HOME"\))'
+      - regex: '\b(rimraf(\.sync)?|rimrafSync|removeSync|rmSync|rmdirSync|(fs|fsp|promises)\.rm(dir)?|fse?\.remove)\s*\(\s*(os\.homedir\(\)|[''"`](/|~)[''"`]|process\.env\.(HOME|USERPROFILE))\s*[,)]'
+      # Windows: formatting drives, deleting shadow copies and backups, wiping free space,
+      # disabling recovery (ransomware and wiper playbook).
+      - regex: '\bformat(\.com)?\s+[c-z]:(?=\s*(/[qyxu]|[''"`]|$))'
+        flags: i
+      - regex: '\bvssadmin(\.exe)?[''"]?[\s,]+[''"]?delete[''"]?[\s,]+[''"]?shadows\b|\bwmic(\.exe)?[''"]?[\s,]+[''"]?shadowcopy[''"]?[\s,]+[''"]?delete\b'
+        flags: i
+      - regex: '\bwbadmin(\.exe)?[''"]?[\s,]+[''"]?delete[''"]?[\s,]+[''"]?(catalog|systemstatebackup|backup)\b'
+        flags: i
+      - regex: '\bcipher(\.exe)?[''"]?[\s,]+[''"]?/w:'
+        flags: i
+      - regex: '\bbcdedit\b[^\n]*\b(recoveryenabled[''"]?[\s,]+[''"]?no|bootstatuspolicy[''"]?[\s,]+[''"]?ignoreallfailures)\b'
+        flags: i
+    not:
+      # Safety guards and warnings that quote the dangerous command.
+      - regex: '\brefus(e|es|ed|ing)\b|\bnot allowed\b|\bdangerous\b|\b(never|don''t|do not)\s+(run|use|execute|type)\b'
+        flags: i
+    scope: line
+  message: '{package} contains a destructive command (disk wipe, root or home deletion, or backup removal) in {file}'

