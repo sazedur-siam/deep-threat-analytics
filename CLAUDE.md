@@ -58,6 +58,7 @@ Full plan and stage table: `~/.claude/plans/i-want-to-make-ticklish-toucan.md`.
 - README/CHANGELOG images must use `https` URLs; SVG images are only allowed from trusted badge providers.
 - Required metadata: `displayName`, `description`, `repository`, `license` + `LICENSE` file, `engines.vscode`, valid `categories`, ≤30 `keywords`.
 - Versions are plain `major.minor.patch`. Pre-releases use `vsce publish --pre-release` (convention: odd minor = pre-release, even minor = release). Bump version and update `CHANGELOG.md` for every publish.
+- Do not set `"preview": true` in package.json: it shows a "Preview" badge on the whole listing (separate from `--pre-release`). Check `<GalleryFlags>` in the packaged `extension.vsixmanifest` reads `Public`.
 - Keep the VSIX small: bundle with esbuild, check contents with `npx vsce ls`.
 - UX: every command has the `DepThreat` category; avoid notification spam; the activity-bar view icon is a monochrome SVG or codicon.
 - Declare workspace-trust support (`capabilities.untrustedWorkspaces`) and document data handling. The extension collects no telemetry; if any is ever added it must respect `vscode.env.isTelemetryEnabled`.
