@@ -65,3 +65,29 @@
         flags: i
     scope: line
   message: '{package} contains text in {file} that tries to make an AI coding agent ignore its instructions and run commands or leak secrets'
+
+# CI pipelines run with repository secrets; worms add a workflow that dumps them. Project
+# generators (projen, nx, create-* tools) also write CI files but are normally devDependencies.
+- id: persistence/ci-config-write
+  title: Writes CI pipeline configuration
+  category: persistence
+  severity: high
+  languages: [javascript, typescript, python, go, rust, php, java]
+  match:
+    all:
+      - regex: '[''"`/\\]\.github[/\\''"`\s,+]{1,8}workflows\b|[''"`/\\]\.gitlab-ci\.ya?ml\b|[''"`/\\]\.circleci[/\\''"`]|[''"`/\\]azure-pipelines\.ya?ml\b|[''"`/\\]Jenkinsfile[''"`]|[''"`/\\]bitbucket-pipelines\.ya?ml\b|[''"`/\\]\.buildkite[/\\''"`]'
+      - regex: '\b(writeFile|appendFile|outputFile|writeJson|outputJson|copyFile|cp)(Sync)?\s*\(|\bcreateWriteStream\s*\(|\bopen\s*\(.*,\s*(mode\s*=\s*)?[''"][wax]b?\+?[''"]\s*[,)]|\.write_(text|bytes)\s*\(|\bshutil\.copy(file|2|tree)?\s*\(|\b(os|ioutil)\.(WriteFile|OpenFile|Create)\(|\bfs::(write|copy)\(|\bOpenOptions::new\(\)|\bFile::create\(|\bfile_put_contents\s*\(|\bfopen\s*\(.*,\s*[''"][waxc]b?\+?[''"]|\bFiles\.(write|writeString|newBufferedWriter|newOutputStream|copy)\s*\(|\bnew\s+(FileWriter|FileOutputStream)\s*\('
+    scope: file
+  message: '{package} writes CI pipeline configuration (.github/workflows, .gitlab-ci.yml, ...) in {file}'
+
+- id: persistence/github-api-workflow-write
+  title: Creates GitHub Actions workflows through the API
+  category: persistence
+  severity: high
+  languages: [javascript, typescript, python, go, rust, php, java]
+  match:
+    all:
+      - regex: '\.github(/|%2F)workflows\b|[''"`/\\]\.github[/\\''"`\s,+]{1,8}workflows\b'
+      - regex: '/repos/[^\s''"]*/contents/|\bcreateOrUpdateFileContents\b|\.(create_file|update_file)\s*\(|/repos/[^\s''"]*/git/(trees|commits|refs)\b|\bcreateCommitOnBranch\b'
+    scope: file
+  message: '{package} creates or updates GitHub Actions workflow files through the GitHub API in {file}'
