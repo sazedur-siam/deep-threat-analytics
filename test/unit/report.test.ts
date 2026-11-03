@@ -70,7 +70,7 @@ describe('renderMarkdownReport', () => {
     expect(md).toContain('### By severity');
     expect(md).toContain('| 🟠 high | 1 |');
     expect(md).toContain('| exec | 2 |');
-    expect(md).toContain('| npm | 4 |');
+    expect(md).toContain('| npm | 5 |');
   });
 
   it('lists policy violations and per-package findings with locations and evidence', () => {
@@ -83,7 +83,7 @@ describe('renderMarkdownReport', () => {
     expect(md).toContain('  - Evidence: `const payload = JSON.stringify(process.env);`');
     expect(md).toContain('(policy: no-install-hooks)');
     // The worst package comes first.
-    expect(md.indexOf('### evil-env-stealer')).toBeLessThan(md.indexOf('### evil-postinstall'));
+    expect(md.indexOf('### evil-postinstall')).toBeLessThan(md.indexOf('### evil-env-stealer'));
   });
 
   it('reports suppressions, hidden findings and problems', () => {

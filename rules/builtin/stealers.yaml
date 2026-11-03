@@ -1,0 +1,129 @@
+# Info-stealers, blockchain command-and-control, destructive payloads and download-and-execute
+# loaders (MALFEX/Solara-style token stealers, GlassWorm/EtherHiding C2, disk-wiping Go modules).
+
+- id: secrets-fs/messenger-session-theft
+  title: Reads messenger or game-client sessions
+  category: secrets-fs
+  severity: high
+  languages: ['*']
+  match:
+    any:
+      # Discord desktop clients keep their auth token in Local Storage/leveldb.
+      - regex: '[dD]iscord(canary|ptb|development)?[''"`]?\s*[,/\\]+\s*[''"`]?Local Storage'
+      # Prefix of the DPAPI-encrypted Discord token inside leveldb.
+      - regex: 'dQw4w9WgXcQ:'
+      # Discord token regexes ([\w-]{24}\.[\w-]{6}\.[\w-]{27} and mfa\.[\w-]{84}).
+      - regex: '\{2[4-6](,\d+)?\}\\?\.\S{0,20}\{6\}\\?\.\S{0,20}\{\d{2,3}(,\d+)?\}'
+      - regex: '\bmfa\\?\.\S{0,20}\{84\}'
+      # Telegram Desktop session folder and its key file.
+      - regex: 'Telegram ?Desktop[''"`]?\s*[,/\\]+\s*[''"`]?tdata\b'
+      - regex: '\bkey_datas\b|D877F783D5D3EF8C'
+      # Slack, Signal and WhatsApp desktop session stores.
+      - regex: '\bSlack[''"`]?\s*[,/\\]+\s*[''"`]?(Local Storage|Cookies\b)'
+      - regex: '\bSignal[''"`]?\s*[,/\\]+\s*[''"`]?(Local Storage|sql[''"`]?\s*[,/\\]+\s*[''"`]?db\.sqlite)'
+      - regex: '\bWhatsApp[''"`]?\s*[,/\\]+\s*[''"`]?(Local Storage|IndexedDB|Session Storage)|WhatsAppDesktop_cv1g1gvanyjgm'
+      # Steam machine-auth (ssfn*) files and the saved-login list.
+      - regex: '[''"`/\\]ssfn(\d|\*|[''"`])|[/\\''"`]loginusers\.vdf\b'
+    scope: line
+  message: '{package} reads Discord, Telegram, Slack, Signal, WhatsApp or Steam session data in {file}'
+
+- id: exfiltration/messenger-session-exfiltration
+  title: Sends stolen messenger sessions out
+  category: exfiltration
+  severity: critical
+  languages: ['*']
+  match:
+    all:
+      # Same session-store signals as secrets-fs/messenger-session-theft.
+      - regex: '[dD]iscord(canary|ptb|development)?[''"`]?\s*[,/\\]+\s*[''"`]?Local Storage|dQw4w9WgXcQ:|\{2[4-6](,\d+)?\}\\?\.\S{0,20}\{6\}\\?\.\S{0,20}\{\d{2,3}(,\d+)?\}|\bmfa\\?\.\S{0,20}\{84\}|Telegram ?Desktop[''"`]?\s*[,/\\]+\s*[''"`]?tdata\b|\bkey_datas\b|D877F783D5D3EF8C|\bSlack[''"`]?\s*[,/\\]+\s*[''"`]?(Local Storage|Cookies\b)|\bSignal[''"`]?\s*[,/\\]+\s*[''"`]?(Local Storage|sql[''"`]?\s*[,/\\]+\s*[''"`]?db\.sqlite)|\bWhatsApp[''"`]?\s*[,/\\]+\s*[''"`]?(Local Storage|IndexedDB|Session Storage)|WhatsAppDesktop_cv1g1gvanyjgm|[''"`/\\]ssfn(\d|\*|[''"`])|[/\\''"`]loginusers\.vdf\b'
+      # Outbound send: chat webhooks, the Telegram bot API, or any HTTP POST.
+      - regex: 'discord(app)?\.com/api/webhooks|api\.telegram\.org/bot|\bsendDocument\b|hooks\.slack\.com/services|webhook\.site|\.post\s*\(|\bmethod\s*[:=]\s*[''"`]POST[''"`]|\bhttps?\.request\s*\(|\bhttp\.Post(Form)?\(|\bCURLOPT_POST(FIELDS)?\b|setRequestMethod\(\s*"POST"\s*\)|\bnew\s+HttpPost\(|\.POST\(|\bcurl\b[^\n]*\s(-F|-d|--data(-binary)?|--form|-T|--upload-file)\s'
+    scope: file
+  message: '{package} collects messenger or game-client session data and sends it out in {file}'
+
+# Web3 libraries (@solana/web3.js, ethers, web3.js, web3.py) legitimately contain RPC hosts and
+# methods, so this only fires when the same file also turns data into running code.
+- id: network/blockchain-c2
+  title: Fetches code from a blockchain and runs it
+  category: network
+  severity: high
+  languages: [javascript, typescript, python]
+  match:
+    all:
+      - regex: 'api\.(mainnet-beta|devnet|testnet)\.solana\.com|\bgetSignaturesForAddress\b|MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr|Memo1UhkJRfHyvLMcVucJwxXeuD728EqVDDwQDxFMNo|bsc-dataseed\d*\.|\beth_call\b|\beth_getTransactionByHash\b|rpc\.ankr\.com|cloudflare-eth\.com|\.publicnode\.com|\.llamarpc\.com|polygon-rpc\.com|\.infura\.io|\.alchemy(api)?\.io|\bnew\s+(ethers\.)?(providers\.)?JsonRpcProvider\s*\(|\bnew\s+Web3\s*\('
+      - regex: '(^|[^.\w])(eval|exec)\s*\(\s*[^''"`)\s]|\bnew\s+Function\s*\(\s*[^''"`)\s]|\bvm\.(runInThisContext|runInNewContext|runInContext|compileFunction)\s*\(|\bnew\s+vm\.Script\s*\(|\bexecSync\s*\(\s*[^''"`)\s]'
+    scope: file
+  message: '{package} reads data from a blockchain RPC endpoint and executes code in {file}, a pattern used for blockchain command-and-control'
+
+# Wipers: only whole-disk, root or home-directory targets, so `rm -rf ./dist`,
+# `rm -rf node_modules` or `rm -rf /tmp/build` never match.
+- id: exec/destructive-command
+  title: Wipes disks, the home directory or backups
+  category: exec
+  severity: critical
+  languages: ['*']
+  match:
+    any:
+      # rm -rf / | /* | ~ | $HOME | /etc ... as a shell string.
+      - regex: '\brm\s+(-[\w-]+\s+)*(-[a-zA-Z]*[rR][a-zA-Z]*|--recursive)\s+(-[\w-]+\s+)*[''"]?(/|~|\$HOME|\$\{HOME\}|/(bin|boot|etc|home|usr|var|lib|root|opt|sys|Users))/?\*?(?=$|[\s''"`;&|)])'
+      # rm -rf / as an argument list: ["rm", "-rf", "/"], Command("rm").args(["-rf", "~"]).
+      - regex: '[''"]rm[''"](\s*,\s*|\)\s*\.\s*args?\(\s*&?\[?\s*)[''"]-[a-zA-Z]*[rR][a-zA-Z]*[''"]((\s*,\s*|\)\s*\.\s*args?\(\s*&?\[?\s*)[''"]--no-preserve-root[''"])?(\s*,\s*|\)\s*\.\s*args?\(\s*&?\[?\s*)[''"](/|~|/(bin|boot|etc|home|usr|var|lib|root|opt|sys|Users))/?\*?[''"]'
+      - regex: '--no-preserve-root\b'
+      # Raw writes or filesystem creation on block devices.
+      - regex: '\bdd\b[^\n]*\bof=/dev/(sd[a-z]|nvme\d|hd[a-z]|xvd[a-z]|vd[a-z]|mmcblk\d|r?disk\d)'
+      - regex: '\b(mkfs(\.\w+)?|shred|wipefs)\b[^\n]*\s[''"]?/dev/(sd[a-z]|nvme\d|hd[a-z]|xvd[a-z]|vd[a-z]|mmcblk\d|r?disk\d)'
+      # Fork bomb.
+      - regex: ':\(\)\s*\{\s*:\s*\|\s*:\s*&\s*\}\s*;\s*:'
+      # Recursive delete of the filesystem root or home directory through language APIs.
+      - regex: '\bshutil\.rmtree\s*\(\s*([''"](/|~)[''"]|os\.path\.expanduser\(\s*[''"]~[''"]\s*\)|(pathlib\.)?Path\.home\(\)|os\.environ\[[''"](HOME|USERPROFILE)[''"]\])\s*[,)]'
+      - regex: '\bos\.RemoveAll\(\s*("/"|"~"|os\.Getenv\("(HOME|USERPROFILE)"\))\s*\)'
+      - regex: '\bremove_dir_all\(\s*("/"|"~"|(dirs::)?home_dir\(\)|env::var\("HOME"\))'
+      - regex: '\b(rimraf(\.sync)?|rimrafSync|removeSync|rmSync|rmdirSync|(fs|fsp|promises)\.rm(dir)?|fse?\.remove)\s*\(\s*(os\.homedir\(\)|[''"`](/|~)[''"`]|process\.env\.(HOME|USERPROFILE))\s*[,)]'
+      # Windows: formatting drives, deleting shadow copies and backups, wiping free space,
+      # disabling recovery (ransomware and wiper playbook).
+      - regex: '\bformat(\.com)?\s+[c-z]:(?=\s*(/[qyxu]|[''"`]|$))'
+        flags: i
+      - regex: '\bvssadmin(\.exe)?[''"]?[\s,]+[''"]?delete[''"]?[\s,]+[''"]?shadows\b|\bwmic(\.exe)?[''"]?[\s,]+[''"]?shadowcopy[''"]?[\s,]+[''"]?delete\b'
+        flags: i
+      - regex: '\bwbadmin(\.exe)?[''"]?[\s,]+[''"]?delete[''"]?[\s,]+[''"]?(catalog|systemstatebackup|backup)\b'
+        flags: i
+      - regex: '\bcipher(\.exe)?[''"]?[\s,]+[''"]?/w:'
+        flags: i
+      - regex: '\bbcdedit\b[^\n]*\b(recoveryenabled[''"]?[\s,]+[''"]?no|bootstatuspolicy[''"]?[\s,]+[''"]?ignoreallfailures)\b'
+        flags: i
+    not:
+      # Safety guards and warnings that quote the dangerous command.
+      - regex: '\brefus(e|es|ed|ing)\b|\bnot allowed\b|\bdangerous\b|\b(never|don''t|do not)\s+(run|use|execute|type)\b'
+        flags: i
+    scope: line
+  message: '{package} contains a destructive command (disk wipe, root or home deletion, or backup removal) in {file}'
+
+- id: dynamic-code/download-and-execute
+  title: Downloads code and runs it
+  category: dynamic-code
+  severity: critical
+  languages: ['*']
+  match:
+    any:
+      # exec(urlopen(u).read()), exec(requests.get(u).text), eval(await (await fetch(u)).text()).
+      - regex: '(^|[^.\w])(exec|eval)\s*\([^\n]*\b(urlopen|requests\.get|httpx\.get|fetch|axios(\.get)?|got(\.get)?|https?\.get)\s*\('
+      - regex: '\bnew\s+Function\s*\([^\n]*\b(fetch|axios(\.get)?|got(\.get)?)\s*\('
+      - regex: '(\bvm\.(runInThisContext|runInNewContext|runInContext|compileFunction)|\bnew\s+vm\.Script)\s*\([^\n]*\b(fetch|axios(\.get)?|got(\.get)?)\s*\('
+      # Shell pipes: curl … | sh, wget -O - … | sudo bash, bash -c "$(curl …)", bash <(curl …).
+      - regex: '\b(curl|wget)\b[^\n|]*\|\s*(sudo\s+(-\S+\s+)*)?((ba|z|da|k)?sh|python[23]?|perl|ruby|node)\b'
+      - regex: '\b(ba|z|da)?sh\s+-c\s+[''"]?\$\(\s*(curl|wget)\b|\b((ba|z)?sh|source)\s+<\(\s*(curl|wget)\b'
+      # PowerShell: iex (iwr …), IEX (New-Object Net.WebClient).DownloadString(…), irm … | iex.
+      - regex: '\b(iex|Invoke-Expression)\s*[(\s][(\s]*(iwr|irm|Invoke-WebRequest|Invoke-RestMethod|New-Object\s+(System\.)?Net\.WebClient|\$\w+\.Download(String|Data))\b'
+        flags: i
+      - regex: '\b(iwr|irm|Invoke-WebRequest|Invoke-RestMethod|DownloadString)\b[^\n|]*\|\s*(iex|Invoke-Expression)\b'
+        flags: i
+      # Windows LOLBins that download a file which is then started, or run a remote HTA.
+      - regex: '\b(certutil(\.exe)?\b[^\n]*[-/]urlcache|bitsadmin(\.exe)?\b[^\n]*/transfer)\b[^\n]*(&&|&|;|\|\|)[^\n]*\.(exe|bat|cmd|ps1|vbs|scr|dll)\b'
+        flags: i
+      - regex: '\bmshta(\.exe)?[''"]?[\s,]+[''"]?https?://'
+        flags: i
+    not:
+      # Install instructions printed for the user rather than run.
+      - regex: '\bconsole\.(log|info|warn|error)\s*\(|(^|[^.\w])print\s*\(|^\s*echo\s|\blog(ger)?\.(info|warn|warning|error|debug)\s*\(|\bfmt\.Print|System\.out\.print|\bprintln!'
+    scope: line
+  message: '{package} downloads code and executes it immediately in {file}'

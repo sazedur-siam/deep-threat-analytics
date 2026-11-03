@@ -48,6 +48,7 @@ describe('py-sample fixture end to end', () => {
 
   it('flags the shell payload and the startup .pth hook', () => {
     expect(ruleIds('evil-setup')).toEqual([
+      'dynamic-code/download-and-execute',
       'exec/python-shell',
       'exec/python-shell',
       'install-hook/python-pth-exec',

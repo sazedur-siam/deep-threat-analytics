@@ -61,7 +61,10 @@ describe('scanManifests', () => {
     const shell = result.findings.filter((f) => f.ruleId === 'exec/python-shell');
     expect(shell.length).toBeGreaterThan(0);
     expect(shell.every((f) => f.suppressed?.reason === 'ignored in manifest')).toBe(true);
-    expect(idsFor(active(result.findings), 'evil-setup')).toEqual(['install-hook/python-pth-exec']);
+    expect(idsFor(active(result.findings), 'evil-setup')).toEqual([
+      'dynamic-code/download-and-execute',
+      'install-hook/python-pth-exec',
+    ]);
   });
 
   it('applies project config suppressions and policies', async () => {

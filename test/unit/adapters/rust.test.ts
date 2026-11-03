@@ -181,7 +181,11 @@ describe('rust fixture end to end', () => {
   });
 
   it('flags the malicious build script as a high-severity install hook', () => {
-    expect(ids('shady-build')).toEqual(['exec/rust-shell', 'install-hook/cargo-build-script']);
+    expect(ids('shady-build')).toEqual([
+      'dynamic-code/download-and-execute',
+      'exec/rust-shell',
+      'install-hook/cargo-build-script',
+    ]);
     const hook = findings
       .get('shady-build')!
       .find((f) => f.ruleId === 'install-hook/cargo-build-script')!;
