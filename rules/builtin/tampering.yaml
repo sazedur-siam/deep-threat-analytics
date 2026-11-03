@@ -28,3 +28,40 @@
       - regex: '\b(writeFile|appendFile|outputFile|writeJson|outputJson|copyFile|cp)(Sync)?\s*\(|\bcreateWriteStream\s*\(|\bopen\s*\(.*,\s*(mode\s*=\s*)?[''"][wax]b?\+?[''"]\s*[,)]|\.write_(text|bytes)\s*\(|\bshutil\.copy(file|2|tree)?\s*\(|\b(os|ioutil)\.(WriteFile|OpenFile|Create)\(|\bfs::(write|copy)\(|\bOpenOptions::new\(\)|\bFile::create\(|\bfile_put_contents\s*\(|\bfopen\s*\(.*,\s*[''"][waxc]b?\+?[''"]|\bFiles\.(write|writeString|newBufferedWriter|newOutputStream|copy)\s*\(|\bnew\s+(FileWriter|FileOutputStream)\s*\('
     scope: file
   message: '{package} writes user-level editor settings, tasks or extensions in {file}; this survives across projects and editor restarts'
+
+# Instruction, hook and MCP files steer AI coding agents; a dependency that writes them can make
+# the agent run commands or leak data (MALFEX dropped AGENTS.md files). Agent SDKs and MCP
+# installers legitimately write some of these, but they are rarely runtime dependencies.
+- id: persistence/ai-agent-config
+  title: Writes AI coding agent instructions or config
+  category: persistence
+  severity: high
+  languages: [javascript, typescript, python, go, rust, php, java]
+  match:
+    all:
+      - regex: '[''"`/\\]\.(claude|codex|gemini|cursor[/\\''"`\s,+]{1,8}rules)[/\\''"`]|[''"`/\\]\.claude\.json[''"`]|[''"`/\\](CLAUDE|CLAUDE\.local|AGENTS|GEMINI)\.md[''"`]|[''"`/\\]\.(cursorrules|windsurfrules|clinerules)[''"`/\\]|copilot-instructions\.md|[''"`/\\]\.?mcp\.json[''"`]|claude_desktop_config\.json'
+      - regex: '\b(writeFile|appendFile|outputFile|writeJson|outputJson|copyFile|cp)(Sync)?\s*\(|\bcreateWriteStream\s*\(|\bopen\s*\(.*,\s*(mode\s*=\s*)?[''"][wax]b?\+?[''"]\s*[,)]|\.write_(text|bytes)\s*\(|\bshutil\.copy(file|2|tree)?\s*\(|\b(os|ioutil)\.(WriteFile|OpenFile|Create)\(|\bfs::(write|copy)\(|\bOpenOptions::new\(\)|\bFile::create\(|\bfile_put_contents\s*\(|\bfopen\s*\(.*,\s*[''"][waxc]b?\+?[''"]|\bFiles\.(write|writeString|newBufferedWriter|newOutputStream|copy)\s*\(|\bnew\s+(FileWriter|FileOutputStream)\s*\('
+    scope: file
+  message: '{package} writes AI coding agent instructions or configuration (CLAUDE.md, AGENTS.md, .cursor/rules, MCP config, ...) in {file}'
+
+# Text planted for an AI agent that reads dependency code. Categorized as dynamic-code because
+# the "payload" is natural language that an agent turns into executed commands. LLM and prompt
+# libraries legitimately contain prompt text, so this needs an injection phrase AND a concrete
+# action (run a command, send secrets) on the same line, and skips injection-detection lists.
+- id: dynamic-code/agent-prompt-injection
+  title: Contains prompt-injection text aimed at AI agents
+  category: dynamic-code
+  severity: medium
+  languages: ['*']
+  match:
+    all:
+      - regex: '\b(ignore|disregard|forget|override)\s+(all\s+|any\s+|every\s+)?(of\s+)?(the\s+|your\s+|my\s+)?(previous|prior|above|earlier|preceding|system|original)\s+(instructions?|prompts?|rules|directives|guidelines|messages|context)\b|\byou\s+are\s+now\s+(an?\s+)?(unrestricted|unfiltered|jailbroken|dan|developer\s+mode|in\s+developer\s+mode|root|admin)\b|\b(attention|note|message|instructions?)\s+(to|for)\s+(all\s+)?(ai|llm|coding)\s+(agents?|assistants?|models?)\b|\b(ai|llm|coding)\s+(agents?|assistants?)\s+(must|should|are\s+required\s+to)\b'
+        flags: i
+      - regex: '\b(run|execute|exec|invoke)\b[^\n]{0,40}?\b(commands?|scripts?|shell|bash|sh|powershell|curl|wget|following)\b|\b(curl|wget)\s+(-\w+\s+)*https?://|\b(send|upload|post|exfiltrate|transmit|forward|copy|leak|include)\b[^\n]{0,40}?(\bsecrets?\b|\btokens?\b|\bcredentials?\b|\bapi[\s_-]?keys?\b|\bpasswords?\b|\.env\b|\.npmrc\b|\.ssh\b|\bssh\s+keys?\b|\bprivate\s+keys?\b|\benvironment\s+variables\b)|\b(read|cat|print|reveal|output|dump)\b[^\n]{0,30}?(\.env\b|\.npmrc\b|\.ssh\b|\bid_rsa\b|\bsecrets?\b|\btokens?\b|\bcredentials\b|\bapi[\s_-]?keys?\b|\benvironment\s+variables\b)'
+        flags: i
+    not:
+      # Prompt-injection detectors, guardrails and red-team suites list these phrases as data.
+      - regex: '\b(detect|detection|detector|classif|is_?injection|injection_?(pattern|signature|score|check|list)|guardrail|sanitiz|red[\s_-]?team|jailbreak_?(score|detect|pattern)|benchmark|test_?case)\w*'
+        flags: i
+    scope: line
+  message: '{package} contains text in {file} that tries to make an AI coding agent ignore its instructions and run commands or leak secrets'
