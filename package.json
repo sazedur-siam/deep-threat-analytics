@@ -2,7 +2,7 @@
   "name": "deep-threat-analytics",
   "displayName": "DepThreat Analytics – Dependency Threat & Malware Scanner",
   "description": "Dependency threat and vulnerability scanner: catches hacked, backdoored and malicious npm, PyPI, Go, Rust (Cargo), PHP (Composer) and Java (Maven/Gradle) packages: data leaks and exfiltration, install hooks, GlassWorm invisible Unicode, typosquats, CVEs. Local; never runs their code.",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "publisher": "MdSazedurRahman",
   "license": "MIT",
   "repository": {
