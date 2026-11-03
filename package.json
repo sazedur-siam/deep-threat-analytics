@@ -447,7 +447,6 @@
     "vitest": "^5.0.5"
   },
   "pricing": "Free",
-  "preview": "true",
   "qna": "marketplace",
   "galleryBanner": {
     "color": "#1b1f24",
