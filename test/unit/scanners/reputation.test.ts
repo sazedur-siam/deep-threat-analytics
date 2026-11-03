@@ -1,6 +1,6 @@
 import * as path from 'node:path';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
-import type { PackageRef } from '../../../src/core/types';
+import type { EcosystemId, PackageRef } from '../../../src/core/types';
 import {
   checkTyposquat,
   damerauLevenshtein,
@@ -9,26 +9,37 @@ import {
 } from '../../../src/scanners/reputation';
 
 const DATA = path.resolve(__dirname, '../../../data');
+const ECOSYSTEMS: EcosystemId[] = ['npm', 'pypi', 'go', 'cargo', 'composer', 'maven'];
+const tops = {} as Record<EcosystemId, string[]>;
 let npmTop: string[];
 let pypiTop: string[];
 
 beforeAll(async () => {
-  npmTop = await loadTopPackages('npm', DATA);
-  pypiTop = await loadTopPackages('pypi', DATA);
+  for (const e of ECOSYSTEMS) tops[e] = await loadTopPackages(e, DATA);
+  npmTop = tops.npm;
+  pypiTop = tops.pypi;
 });
 
-const npm = (name: string, version = '1.0.0'): PackageRef => ({ ecosystem: 'npm', name, version });
-const pypi = (name: string, version = '1.0.0'): PackageRef => ({
-  ecosystem: 'pypi',
+const ref = (ecosystem: EcosystemId, name: string, version = '1.0.0'): PackageRef => ({
+  ecosystem,
   name,
   version,
 });
+const npm = (name: string, version = '1.0.0') => ref('npm', name, version);
+const pypi = (name: string, version = '1.0.0') => ref('pypi', name, version);
 
 describe('top package lists', () => {
   it('load bundled lists and tolerate missing ones', async () => {
     expect(npmTop.length).toBeGreaterThan(250);
     expect(pypiTop).toContain('python-dateutil');
-    expect(await loadTopPackages('cargo', DATA)).toEqual([]);
+    expect(await loadTopPackages('npm', path.join(DATA, 'missing'))).toEqual([]);
+  });
+
+  it.each(ECOSYSTEMS)('%s: is a sorted, unique, lower-case list', (e) => {
+    const list = tops[e];
+    expect(list.length).toBeGreaterThan(150);
+    expect(list).toEqual([...new Set(list)].sort());
+    expect(list.filter((n) => n !== n.toLowerCase())).toEqual([]);
   });
 });
 
@@ -64,9 +75,105 @@ describe('checkTyposquat', () => {
     expect(f?.title).toBe(`Possible typosquat of ${target}`);
   });
 
-  it('never flags popular packages themselves', () => {
-    for (const name of npmTop) expect(checkTyposquat(npm(name), npmTop), name).toBeUndefined();
-    for (const name of pypiTop) expect(checkTyposquat(pypi(name), pypiTop), name).toBeUndefined();
+  it.each(ECOSYSTEMS)('%s: never flags popular packages themselves', (e) => {
+    for (const name of tops[e]) expect(checkTyposquat(ref(e, name), tops[e]), name).toBeUndefined();
+  });
+
+  it.each([
+    ['cargo', 'proc-macro1', 'proc-macro2'],
+    ['cargo', 'serde_jsom', 'serde_json'],
+    ['cargo', 'serde-jsno', 'serde_json'],
+    ['cargo', 'tokio-utl', 'tokio-util'],
+    ['cargo', 'rust-serde', 'serde'],
+    ['cargo', 'reqwest-rs', 'reqwest'],
+    ['go', 'github.com/gorila/mux', 'github.com/gorilla/mux'],
+    ['go', 'github.com/gorillla/mux/v2', 'github.com/gorilla/mux'],
+    ['go', 'github.com/spf13/cobar', 'github.com/spf13/cobra'],
+    ['go', 'github.com/sirupsen/logrsu/hooks', 'github.com/sirupsen/logrus'],
+    ['go', 'github.com/strechr/testify/assert', 'github.com/stretchr/testify'],
+    ['go', 'githuh.com/stretchr/testify', 'github.com/stretchr/testify'],
+    ['go', 'go1ang.org/x/crypto', 'golang.org/x/crypto'],
+    ['go', 'github.com/Gorila/Mux', 'github.com/gorilla/mux'],
+    ['composer', 'symfony/consle', 'symfony/console'],
+    ['composer', 'guzzlehttp/guzle', 'guzzlehttp/guzzle'],
+    ['composer', 'symfonny/console', 'symfony/console'],
+    ['composer', 'laravel/framwork', 'laravel/framework'],
+    ['composer', 'monolog/mono-log', 'monolog/monolog'],
+    ['maven', 'org.apache.logging.log4j:log4j-cor', 'org.apache.logging.log4j:log4j-core'],
+    [
+      'maven',
+      'com.fasterxml.jackson.core:jackson-databnd',
+      'com.fasterxml.jackson.core:jackson-databind',
+    ],
+    ['maven', 'org.apache.loging.log4j:log4j-core', 'org.apache.logging.log4j:log4j-core'],
+    ['maven', 'org.sprlngframework:spring-core', 'org.springframework:spring-core'],
+  ] as const)('%s: flags %s as a squat of %s', (e, name, target) => {
+    const f = checkTyposquat(ref(e, name), tops[e]);
+    expect(f?.title).toBe(`Possible typosquat of ${target}`);
+    expect(f).toMatchObject({ ruleId: 'reputation/typosquat', severity: 'medium' });
+  });
+
+  it('names the differing part of a path-like name', () => {
+    expect(checkTyposquat(ref('go', 'github.com/gorila/mux'), tops.go)?.message).toBe(
+      'github.com/gorila/mux looks like an imitation of the popular package github.com/gorilla/mux ' +
+        '("gorila" instead of "gorilla" is a one-character typo away). Check that you meant to install it.',
+    );
+  });
+
+  it.each([
+    // Crates: versioned forks, short-named siblings, sub-crates, short names.
+    ['cargo', 'serde_json5'],
+    ['cargo', 'tracing_subscriber'],
+    ['cargo', 'serde-json-lenient'],
+    ['cargo', 'aws-sdk-sqs'],
+    ['cargo', 'aws-sdk-sns'],
+    ['cargo', 'tide'],
+    ['cargo', 'rand_pcg'],
+    ['cargo', 'tokio-test'],
+    ['cargo', 'openssl-src'],
+    ['cargo', 'my-internal-crate'],
+    // Go: sub-modules and packages under a popular module, major versions, forks.
+    ['go', 'github.com/aws/aws-sdk-go-v2/service/sqs'],
+    ['go', 'github.com/aws/aws-sdk-go-v2/service/s3'],
+    ['go', 'github.com/aws/aws-sdk-go-v2/feature/s3/manager'],
+    ['go', 'cloud.google.com/go/firestore'],
+    ['go', 'github.com/go-chi/chi/v6'],
+    ['go', 'gopkg.in/yaml.v1'],
+    ['go', 'github.com/stretchr/testify/require'],
+    ['go', 'github.com/myfork/mux'],
+    ['go', 'github.com/spf13/cobra-cli'],
+    ['go', 'gitlab.com/gorilla/mux'],
+    ['go', 'golang.org/x/vuln'],
+    ['go', 'golang.org/x/arch'],
+    ['go', 'k8s.io/client-gen'],
+    ['go', 'github.com/hashicorp/consul/sdk'],
+    ['go', 'example.com/internal/thing'],
+    // Composer: siblings in a vendor, plugins, other vendors with the same name.
+    ['composer', 'symfony/polyfill-php83'],
+    ['composer', 'symfony/security-guard'],
+    ['composer', 'laravel/vapor-core'],
+    ['composer', 'illuminate/testing'],
+    ['composer', 'spatie/laravel-query-builder'],
+    ['composer', 'acme/console'],
+    ['composer', 'guzzlehttp/guzzle-services'],
+    // Maven: siblings in a group, version suffixes, relocated groups, Scala builds.
+    ['maven', 'org.apache.spark:spark-core_2.13'],
+    ['maven', 'com.amazonaws:aws-java-sdk-sns'],
+    ['maven', 'software.amazon.awssdk:sns'],
+    ['maven', 'org.apache.maven.plugins:maven-pmd-plugin'],
+    ['maven', 'org.springframework.boot:spring-boot-starter-batch'],
+    ['maven', 'org.apache.logging.log4j:log4j-iostreams'],
+    ['maven', 'com.squareup.okhttp3:okhttp-sse'],
+    ['maven', 'io.prometheus:simpleclient_httpserver'],
+    ['maven', 'org.apache.httpcomponents:httpclient-cache'],
+    ['maven', 'org.apache.httpcomponents.client5:httpclient'],
+    ['maven', 'org.apache.commons:commons-collections'],
+    ['maven', 'org.springframework.ws:spring-ws-core'],
+    ['maven', 'com.example:guava'],
+    ['maven', 'org.apache.poi:poi-scratchpad'],
+    ['maven', 'junit'],
+  ] as const)('%s: does not flag %s', (e, name) => {
+    expect(checkTyposquat(ref(e, name), tops[e])).toBeUndefined();
   });
 
   it.each([

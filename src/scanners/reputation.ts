@@ -37,8 +37,10 @@ export function damerauLevenshtein(a: string, b: string): number {
   return d[a.length]![b.length]!;
 }
 
+const SEPARATORS = /[-_.]/;
 const stripSeparators = (s: string) => s.replace(/[-_.]/g, '');
 const LANG_AFFIX = /^(js|node|py|python)[-_.]|[-_.](js|node|py|python)$/g;
+const RUST_AFFIX = /^(rs|rust)[-_.]|[-_.](rs|rust)$/g;
 const HOMOGLYPHS: Array<[RegExp, string]> = [
   [/0/g, 'o'],
   [/1/g, 'l'],
@@ -46,19 +48,102 @@ const HOMOGLYPHS: Array<[RegExp, string]> = [
   [/vv/g, 'w'],
 ];
 
+/** How names in one ecosystem are compared. */
+interface SquatPolicy {
+  normalize: (name: string) => string;
+  /** Language prefixes/suffixes that squatters add (express-js, rust-serde). */
+  affix?: RegExp;
+  /**
+   * Split a name into parts that are compared one at a time (Go module paths, Composer
+   * vendor/name, Maven group segments + artifact). Exactly one part may differ, so a fork under
+   * an unrelated owner or an artifact in an unrelated group is never flagged.
+   */
+  parts?: (name: string) => string[];
+  /** Compare only the leading parts, so packages nested under a module path count as that module. */
+  prefixParts?: boolean;
+  /**
+   * Conservative matching for registries full of numbered and short-named siblings
+   * (aws-sdk-s3/aws-sdk-sqs, maven-jar-plugin/maven-war-plugin, serde_json/serde_json5):
+   * one edit at most, only for names of 5+ characters, never inside a token of 3 or fewer
+   * characters, and never for adding or dropping a trailing version number.
+   */
+  strict?: boolean;
+}
+
+const lower = (n: string) => n.toLowerCase();
+
+const POLICIES: Record<EcosystemId, SquatPolicy> = {
+  npm: { normalize: lower, affix: LANG_AFFIX },
+  pypi: { normalize: normalizePythonName, affix: LANG_AFFIX },
+  // crates.io treats - and _ as the same character: serde_json and serde-json are one crate.
+  cargo: { normalize: (n) => n.toLowerCase().replace(/_/g, '-'), affix: RUST_AFFIX, strict: true },
+  go: {
+    // Major-version suffixes (/v2, gopkg.in/yaml.v3) name the same module.
+    normalize: (n) =>
+      n
+        .toLowerCase()
+        .replace(/\/v\d+$/, '')
+        .replace(/^(gopkg\.in\/.+)\.v\d+$/, '$1'),
+    parts: (n) => n.split('/'),
+    prefixParts: true,
+    strict: true,
+  },
+  composer: { normalize: lower, parts: (n) => n.split('/'), strict: true },
+  maven: {
+    // Scala binary-version suffixes (spark-core_2.12, akka-actor_3) name the same library.
+    normalize: (n) => n.toLowerCase().replace(/_(2\.\d+|3)$/, ''),
+    parts: (n) => {
+      const [group = '', artifact] = n.split(':');
+      return artifact === undefined ? [n] : [...group.split('.'), artifact];
+    },
+    strict: true,
+  },
+};
+
+/** A versioned or short-named sibling of the target, which is not a squat (see SquatPolicy.strict). */
+function isSibling(name: string, target: string): boolean {
+  const [short, long] = name.length < target.length ? [name, target] : [target, name];
+  if (long.startsWith(short) && /^\d+$/.test(long.slice(short.length))) return true;
+  const a = name.split(SEPARATORS);
+  const b = target.split(SEPARATORS);
+  if (a.length !== b.length || a.length < 2) return false;
+  const diff = b.flatMap((t, i) => (t === a[i] ? [] : [t]));
+  return diff.length === 1 && diff[0]!.length <= 3;
+}
+
 /** Why `name` looks like an imitation of `target`, or undefined. */
-function squatReason(name: string, target: string): string | undefined {
+function squatReason(name: string, target: string, policy: SquatPolicy): string | undefined {
   if (name === target || target.length < 4) return undefined;
-  if (name.replace(LANG_AFFIX, '') === target) return 'adds a language prefix or suffix';
+  if (policy.affix && name.replace(policy.affix, '') === target) {
+    return 'adds a language prefix or suffix';
+  }
   // Sub-packages and plugins of a popular package are not squats: lodash.merge, react-dom.
   if (name.startsWith(`${target}-`) || name.startsWith(`${target}.`)) return undefined;
+  if (policy.strict && (name.startsWith(`${target}_`) || isSibling(name, target))) return undefined;
   if (stripSeparators(name) === stripSeparators(target)) return 'only the separators differ';
   let glyphs = name;
   for (const [re, ch] of HOMOGLYPHS) glyphs = glyphs.replace(re, ch);
   if (glyphs !== name && glyphs === target) return 'swaps look-alike characters';
   if (Math.abs(name.length - target.length) > 2) return undefined;
-  const limit = name.length >= 10 ? 2 : 1;
+  if (policy.strict && target.length < 5) return undefined;
+  const limit = !policy.strict && name.length >= 10 ? 2 : 1;
   return damerauLevenshtein(name, target) <= limit ? 'is a one-character typo away' : undefined;
+}
+
+/** squatReason for names made of parts: exactly one part may differ, and it must look like a squat. */
+function partsSquatReason(
+  name: string[],
+  target: string[],
+  policy: SquatPolicy,
+): string | undefined {
+  const compared = policy.prefixParts ? name.slice(0, target.length) : name;
+  if (compared.length !== target.length) return undefined;
+  const diff = target.flatMap((t, i) => (t === compared[i] ? [] : [i]));
+  // No difference: the same module, or a package nested under it.
+  if (diff.length !== 1) return undefined;
+  const i = diff[0]!;
+  const reason = squatReason(compared[i]!, target[i]!, policy);
+  return reason && `"${compared[i]}" instead of "${target[i]}" ${reason}`;
 }
 
 /**
@@ -66,22 +151,30 @@ function squatReason(name: string, target: string): string | undefined {
  * themselves popular, scoped names, and very short names are never flagged.
  */
 export function checkTyposquat(pkg: PackageRef, topNames: readonly string[]): Finding | undefined {
-  const norm = (n: string) => (pkg.ecosystem === 'pypi' ? normalizePythonName(n) : n.toLowerCase());
-  const name = norm(pkg.name);
+  const policy = POLICIES[pkg.ecosystem] ?? POLICIES.npm;
+  const name = policy.normalize(pkg.name);
   if (name.length < 4 || name.startsWith('@')) return undefined;
-  const top = new Set(topNames.map(norm));
+  // Normalized name -> name as listed, for messages (serde-json -> serde_json).
+  const top = new Map<string, string>();
+  for (const n of topNames) {
+    const key = policy.normalize(n);
+    if (!top.has(key)) top.set(key, n);
+  }
   if (top.has(name)) return undefined;
-  for (const target of top) {
-    const reason = squatReason(name, target);
+  const nameParts = policy.parts?.(name);
+  for (const [target, listed] of top) {
+    const reason = nameParts
+      ? partsSquatReason(nameParts, policy.parts!(target), policy)
+      : squatReason(name, target, policy);
     if (!reason) continue;
     const ruleId = 'reputation/typosquat';
     return {
       id: makeFindingId(ruleId, pkg),
       ruleId,
-      title: `Possible typosquat of ${target}`,
+      title: `Possible typosquat of ${listed}`,
       category: 'reputation',
       severity: 'medium',
-      message: `${pkg.name} looks like an imitation of the popular package ${target} (${reason}). Check that you meant to install it.`,
+      message: `${pkg.name} looks like an imitation of the popular package ${listed} (${reason}). Check that you meant to install it.`,
       source: 'reputation',
       package: pkg,
     };
