@@ -129,6 +129,29 @@ suite('DepThreat Analytics', () => {
     assert.ok(!ourDiagnostics().some((d) => d.range.start.line === lineOf('evil-postinstall')));
   });
 
+  test('exports a Markdown report on demand', async () => {
+    const target = vscode.Uri.file(path.join(workspaceRoot(), 'out', 'report.md'));
+    const file = await vscode.commands.executeCommand<string>('depthreat.exportReport', target);
+    assert.strictEqual(file, target.fsPath);
+    const md = readFileSync(target.fsPath, 'utf8');
+    assert.match(md, /^# DepThreat Analytics report/);
+    assert.match(md, /## Findings by package/);
+  });
+
+  test('writes .depthreat/report.md after each scan when enabled', async () => {
+    const config = vscode.workspace.getConfiguration('depthreat');
+    await config.update('report.autoWrite', true, vscode.ConfigurationTarget.Workspace);
+    try {
+      const report = path.join(workspaceRoot(), '.depthreat', 'report.md');
+      await (await api()).scan();
+      for (let i = 0; i < 50 && !existsSync(report); i++) await sleep(20);
+      assert.ok(existsSync(report), 'report.md was not written');
+      assert.match(readFileSync(report, 'utf8'), /# DepThreat Analytics report/);
+    } finally {
+      await config.update('report.autoWrite', undefined, vscode.ConfigurationTarget.Workspace);
+    }
+  });
+
   test('scanning a non-manifest file does nothing', async () => {
     const other = vscode.Uri.file(path.join(workspaceRoot(), 'package-lock.json'));
     const result = await vscode.commands.executeCommand('depthreat.scanManifest', other);
