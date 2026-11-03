@@ -188,6 +188,35 @@ describe('queryOsv', () => {
     expect((init?.headers as Record<string, string>)['User-Agent']).toBe(USER_AGENT);
   });
 
+  it('never sends editor extensions, which OSV does not cover', async () => {
+    const extension: PackageRef = {
+      ecosystem: 'vscode',
+      name: 'ms-python.python',
+      version: '1.0.0',
+    };
+    const none = vi.fn();
+    expect(await queryOsv([extension], () => 'npm', { enabled: true, fetchImpl: none })).toEqual({
+      findings: [],
+      errors: [],
+    });
+    expect(none).not.toHaveBeenCalled();
+    const fetchImpl = mockOsv();
+    await queryOsv([extension, lodash], osvEco, { enabled: true, fetchImpl });
+    const queries = JSON.parse(String(fetchImpl.mock.calls[0]![1]?.body)).queries;
+    expect(queries).toEqual([
+      { package: { name: 'lodash', ecosystem: 'npm' }, version: '4.17.15' },
+    ]);
+  });
+
+  it('skips ecosystems without an OSV name', async () => {
+    const fetchImpl = vi.fn();
+    expect(await queryOsv([lodash], () => '', { enabled: true, fetchImpl })).toEqual({
+      findings: [],
+      errors: [],
+    });
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
   it('returns findings for every affected package and skips non-concrete versions', async () => {
     const fetchImpl = mockOsv();
     const { findings, errors } = await queryOsv(

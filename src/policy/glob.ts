@@ -28,7 +28,15 @@ export function matchesAny(value: string, globs: readonly string[] | undefined):
   return (globs ?? []).some((g) => matchesGlob(value, g));
 }
 
-const ECOSYSTEMS: readonly EcosystemId[] = ['npm', 'pypi', 'go', 'cargo', 'maven', 'composer'];
+const ECOSYSTEMS: readonly EcosystemId[] = [
+  'npm',
+  'pypi',
+  'go',
+  'cargo',
+  'maven',
+  'composer',
+  'vscode',
+];
 
 /**
  * Package pattern with an optional ecosystem prefix: `lodash`, `@types/*`, `pypi:requests`.
