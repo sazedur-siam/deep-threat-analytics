@@ -199,6 +199,67 @@ function invisibleUnicodeDetections(text: string, sink: RegExp): Detection[] {
   ];
 }
 
+/** LRE RLE PDF LRO RLO and LRI RLI FSI PDI. */
+const BIDI = /[‪-‮⁦-⁩]/g;
+const ANY_BIDI = /[‪-‮⁦-⁩]/;
+
+/**
+ * Whether a line leaves a bidi embedding, override or isolate open (or closes one it never
+ * opened). That is the shape of every Trojan Source example: the line ends while the
+ * reordering is still active, so code after the string/comment renders out of order.
+ */
+function bidiUnbalanced(line: string): boolean {
+  let embed = 0;
+  let isolate = 0;
+  for (const m of line.matchAll(BIDI)) {
+    const cp = m[0].charCodeAt(0);
+    if (cp === 0x202c) {
+      if (--embed < 0) return true;
+    } else if (cp === 0x2069) {
+      if (--isolate < 0) return true;
+    } else if (cp >= 0x2066) isolate++;
+    else embed++;
+  }
+  return embed > 0 || isolate > 0;
+}
+
+function bidiDetections(text: string): Detection[] {
+  if (!ANY_BIDI.test(text)) return [];
+  const lines = text.split('\n');
+  let count = 0;
+  let first: { offset: number; line: string } | undefined;
+  let unbalanced: { offset: number; line: string } | undefined;
+  let lineStart = 0;
+  for (const line of lines) {
+    const hits = [...line.matchAll(BIDI)];
+    if (hits.length) {
+      count += hits.length;
+      const hit = { offset: lineStart + (hits[0]?.index as number), line };
+      first ??= hit;
+      if (!unbalanced && bidiUnbalanced(line)) unbalanced = hit;
+    }
+    lineStart += line.length + 1;
+  }
+  // Balanced pairs on one line are how RTL/i18n libraries wrap text in string literals; still
+  // worth a look, but the classic attack needs an unterminated control, which stays `high`.
+  const anchor = (unbalanced ?? first) as { offset: number; line: string };
+  return [
+    {
+      ruleId: 'obfuscation/bidi-control',
+      title: 'Contains bidirectional control characters (Trojan Source)',
+      severity: unbalanced ? 'high' : 'medium',
+      message:
+        `contains ${count} bidirectional control character${count === 1 ? '' : 's'}` +
+        (unbalanced
+          ? ' left open on a line, which can make code display differently than it runs (Trojan Source, CVE-2021-42574)'
+          : ' (balanced on each line; Trojan Source, CVE-2021-42574)'),
+      offset: anchor.offset,
+      length: 1,
+      evidence: escapeInvisible(trimEvidence(anchor.line, 120)),
+    },
+  ];
+}
+
 function blobDetections(text: string, sink: RegExp | undefined): Detection[] {
   if (!sink || !sink.test(text)) return [];
   const out: Detection[] = [];
@@ -292,6 +353,7 @@ export function detectObfuscation(
   }
   if (language !== 'json') {
     detections.push(...invisibleUnicodeDetections(text, sink ?? GENERIC_SINK));
+    detections.push(...bidiDetections(text));
   }
   if (!detections.length) return [];
 
