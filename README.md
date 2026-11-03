@@ -1,11 +1,11 @@
-# Deep Threat Analytics
+# DepThreat Analytics
 
 [![CI](https://github.com/sazedur-siam/deep-threat-analytics/actions/workflows/ci.yml/badge.svg)](https://github.com/sazedur-siam/deep-threat-analytics/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/sazedur-siam/deep-threat-analytics/blob/main/LICENSE)
 
 **See what your dependencies actually do, not just which CVEs they have.**
 
-Deep Threat Analytics is a Visual Studio Code extension that reads the source code of the packages installed in your project. It flags behavior that could compromise your machine or leak data: sending environment variables over the network, reading SSH keys or cloud credentials, spawning shells, running obfuscated code, or hooking into install scripts.
+DepThreat Analytics is a Visual Studio Code extension that reads the source code of the packages installed in your project. It flags behavior that could compromise your machine or leak data: sending environment variables over the network, reading SSH keys or cloud credentials, spawning shells, running obfuscated code, or hooking into install scripts.
 
 Its rules, allowlists, severities and policies are all yours to customize.
 
@@ -19,7 +19,7 @@ Vulnerability scanners match package versions against databases of _known_ CVEs.
 - **Install-time attacks**: `postinstall` scripts, `setup.py` code, and `.pth` files that run as soon as you install.
 - **Risky capabilities** in packages you trust, such as a date library that opens network sockets.
 
-Deep Threat Analytics looks at the code itself, entirely on your machine. When you opt in, it adds CVE and package-reputation checks on top.
+DepThreat Analytics looks at the code itself, entirely on your machine. When you opt in, it adds CVE and package-reputation checks on top.
 
 ## What it detects
 
@@ -68,7 +68,7 @@ Results appear in three places:
   - Ignore a rule for that package
   - Allowlist the package
   - Update it to the version that fixes its known vulnerabilities (when OSV is enabled)
-- **The Deep Threat Analytics sidebar**: Manifest › Package › Finding. Click a finding to jump to the exact line. Right-click to ignore it or turn the rule off. Policy violations are grouped at the top.
+- **The DepThreat Analytics sidebar**: Manifest › Package › Finding. Click a finding to jump to the exact line. Right-click to ignore it or turn the rule off. Policy violations are grouped at the top.
 
 The status bar shows the result of the last scan and turns red when a policy fails.
 
@@ -155,7 +155,7 @@ policies:
 - **Package patterns** are globs, and `*` also matches `/`, so `*crypto*` covers `@scope/crypto-lib`. Prefix them with `npm:` or `pypi:` to limit them to one ecosystem.
 - **Policy `deny`** matches on any combination of `category`, `rule`, `source` (`code`, `install-hook`, `osv`, `reputation`) and `minSeverity`. All the criteria you list must match.
 - **Actions:** `action: error` violations always show as errors and turn the status bar red. `action: warn` violations show at least as warnings.
-- **Invalid entries** are reported in the **Deep Threat Analytics** output channel with their path, such as `ignore[2].package`. The rest of the file still applies.
+- **Invalid entries** are reported in the **DepThreat Analytics** output channel with their path, such as `ignore[2].package`. The rest of the file still applies.
 
 ### Custom rules: `.depthreat/rules/*.yaml`
 

@@ -14,6 +14,8 @@ First release (non-pre-release) on the Visual Studio Marketplace.
 
 - Published as a regular release so it installs without opting into pre-releases. Features are
   the same as 0.1.0.
+- Renamed to **DepThreat Analytics** (the extension ID `MdSazedurRahman.deep-threat-analytics` is
+  unchanged).
 
 ## [0.1.0] - 2026-11-02
 

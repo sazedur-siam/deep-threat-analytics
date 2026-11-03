@@ -1,4 +1,4 @@
-# Deep Threat Analytics
+# DepThreat Analytics
 
 VS Code extension that scans the **source code of installed dependencies** for behavior that can compromise the system or leak data (network exfiltration, secret/env reads, shell spawning, eval/obfuscation, install hooks), plus opt-in CVE (OSV.dev) and package-reputation checks. Published to the VS Code Marketplace as `MdSazedurRahman.deep-threat-analytics` (publisher ID `MdSazedurRahman`; the GitHub account and commit identity stay `sazedur-siam`).
 
