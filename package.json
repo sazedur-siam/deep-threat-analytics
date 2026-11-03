@@ -75,6 +75,12 @@
         "icon": "$(shield)"
       },
       {
+        "command": "depthreat.scanExtensions",
+        "title": "Scan Installed Extensions",
+        "category": "DepThreat",
+        "icon": "$(extensions)"
+      },
+      {
         "command": "depthreat.clearCache",
         "title": "Clear Scan Cache",
         "category": "DepThreat",
@@ -193,6 +199,11 @@
           "group": "navigation@2"
         },
         {
+          "command": "depthreat.scanExtensions",
+          "when": "view == depthreat.findings",
+          "group": "0_scan@0"
+        },
+        {
           "command": "depthreat.exportFindings",
           "when": "view == depthreat.findings",
           "group": "1_more@0"
@@ -258,7 +269,7 @@
     "viewsWelcome": [
       {
         "view": "depthreat.findings",
-        "contents": "Scan the source code of your installed dependencies for data leaks, credential theft, install hooks and other risky behavior. Everything runs locally.\n[Scan Workspace](command:depthreat.scanWorkspace)\nCustomize with [project config](command:depthreat.createConfig) or [custom rules](command:depthreat.openRulesFolder)."
+        "contents": "Scan the source code of your installed dependencies for data leaks, credential theft, install hooks and other risky behavior. Everything runs locally.\n[Scan Workspace](command:depthreat.scanWorkspace)\nCheck the editor itself: [Scan Installed Extensions](command:depthreat.scanExtensions)\nCustomize with [project config](command:depthreat.createConfig) or [custom rules](command:depthreat.openRulesFolder)."
       }
     ],
     "configuration": {

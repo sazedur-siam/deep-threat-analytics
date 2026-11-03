@@ -1,6 +1,8 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import * as os from 'node:os';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
+import { candidateExtensionDirs, findExtensionManifests } from '../adapters/vscodeExtensions';
 import {
   addAllowlistedPackage,
   addIgnore,
@@ -39,6 +41,27 @@ export function configFolder(fileHint?: string): string | undefined {
     return folder ? folder.uri.fsPath : path.dirname(fileHint);
   }
   return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+}
+
+/**
+ * Config folder for an ignore/allowlist edit. Installed extensions live outside the workspace,
+ * so their entries go to the first workspace folder (never into the editor's extensions folder).
+ */
+function folderFor(ref: FindingRef | undefined): string | undefined {
+  const folder = configFolder(ref?.ecosystem === 'vscode' ? undefined : ref?.manifestPath);
+  if (ref && !folder) {
+    void vscode.window.showInformationMessage(
+      'DepThreat: open a folder to save ignores and allowlists in its .depthreat/config.yaml.',
+    );
+  }
+  return folder;
+}
+
+/** Explicit extension folders passed to depthreat.scanExtensions (tests, other extensions). */
+function stringArray(value: unknown): string[] | undefined {
+  return Array.isArray(value) && value.length && value.every((v) => typeof v === 'string')
+    ? (value as string[])
+    : undefined;
 }
 
 async function readOrTemplate(file: string): Promise<string> {
@@ -89,6 +112,8 @@ export function registerCommands(
   tree: FindingsTree,
   view: vscode.TreeView<TreeNode>,
   extensionVersion?: string,
+  /** The running editor's extensions folder (the parent of DepThreat's own folder). */
+  currentExtensionsDir?: string,
 ): vscode.Disposable[] {
   const afterConfigEdit = async (file: string, what: string) => {
     if (!vscode.workspace.isTrusted) {
@@ -133,6 +158,21 @@ export function registerCommands(
       return announce(await service.scan(targets));
     }),
 
+    // Reads the editor's own extensions folders; never runs extension code, so it is available
+    // in untrusted workspaces too.
+    reg('depthreat.scanExtensions', async (dirs?: unknown) => {
+      const manifests = await findExtensionManifests(
+        stringArray(dirs) ?? candidateExtensionDirs(os.homedir(), currentExtensionsDir),
+      );
+      if (!manifests.length) {
+        void vscode.window.showInformationMessage(
+          'DepThreat: no installed extensions found (no extensions.json in the editor extensions folders).',
+        );
+        return undefined;
+      }
+      return announce(await service.scan(manifests.map((m) => vscode.Uri.file(m))));
+    }),
+
     reg('depthreat.clearCache', async () => {
       service.cache.clear();
       await service.cache.save();
@@ -155,7 +195,7 @@ export function registerCommands(
 
     reg('depthreat.ignoreRule', async (arg?: FindingRef | TreeNode) => {
       const ref = refFrom(arg);
-      const folder = configFolder(ref?.manifestPath);
+      const folder = folderFor(ref);
       if (!ref?.ruleId || !folder) return;
       const pkg = ref.ecosystem === 'npm' ? ref.name : `${ref.ecosystem}:${ref.name}`;
       const file = await editProjectConfig(folder, (t) =>
@@ -166,7 +206,7 @@ export function registerCommands(
 
     reg('depthreat.ignoreFinding', async (arg?: FindingRef | TreeNode) => {
       const ref = refFrom(arg);
-      const folder = configFolder(ref?.manifestPath);
+      const folder = folderFor(ref);
       if (!ref?.findingId || !folder) return;
       const file = await editProjectConfig(folder, (t) =>
         addIgnore(t, { finding: ref.findingId!, reason: `${ref.ruleId} in ${ref.name}` }),
@@ -176,7 +216,7 @@ export function registerCommands(
 
     reg('depthreat.allowlistPackage', async (arg?: FindingRef | TreeNode) => {
       const ref = refFrom(arg);
-      const folder = configFolder(ref?.manifestPath);
+      const folder = folderFor(ref);
       if (!ref || !folder) return;
       const pattern = ref.ecosystem === 'npm' ? ref.name : `${ref.ecosystem}:${ref.name}`;
       const file = await editProjectConfig(folder, (t) => addAllowlistedPackage(t, pattern));
@@ -185,7 +225,7 @@ export function registerCommands(
 
     reg('depthreat.allowlistRule', async (arg?: FindingRef | TreeNode) => {
       const ref = refFrom(arg);
-      const folder = configFolder(ref?.manifestPath);
+      const folder = folderFor(ref);
       if (!ref?.ruleId || !folder) return;
       const file = await editProjectConfig(folder, (t) => addAllowlistedRule(t, ref.ruleId!));
       await afterConfigEdit(file, `turned off ${ref.ruleId} everywhere`);
