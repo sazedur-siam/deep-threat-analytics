@@ -15,7 +15,7 @@ import { ADAPTERS, currentSettings, type ScanService } from './scanService';
 import type { ScanResult } from '../core/engine';
 import type { FindingsTree } from './treeView';
 
-const EXAMPLE_RULES = `# Custom Deep Threat Analytics rules. Same format as the built-in rules.
+const EXAMPLE_RULES = `# Custom DepThreat Analytics rules. Same format as the built-in rules.
 # A rule with the same id as a built-in rule replaces it; "enabled: false" turns it off.
 #
 # - id: custom/unapproved-host

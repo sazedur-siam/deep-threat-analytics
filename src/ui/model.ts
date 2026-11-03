@@ -212,7 +212,7 @@ export function summarizeScan(result: ScanResult, minSeverity: Severity): ScanSu
 
 /** Markdown hover body for a dependency anchor. */
 export function anchorHover(anchor: DepAnchor, max = 8): string {
-  const lines = [`**Deep Threat Analytics** — \`${anchor.dep.name}\``, ''];
+  const lines = [`**DepThreat Analytics** — \`${anchor.dep.name}\``, ''];
   for (const f of anchor.findings.slice(0, max)) {
     const inPkg =
       f.package.name === anchor.dep.name ? '' : ` _(in ${f.package.name}@${f.package.version})_`;

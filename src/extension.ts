@@ -17,7 +17,7 @@ export interface DepThreatApi {
 }
 
 export function activate(context: vscode.ExtensionContext): DepThreatApi {
-  const output = vscode.window.createOutputChannel('Deep Threat Analytics');
+  const output = vscode.window.createOutputChannel('DepThreat Analytics');
   const cache = new ScanCache(path.join(context.globalStorageUri.fsPath, 'scan-cache.json'));
   const service = new ScanService(context, output, cache, (settings, adapters) =>
     createPackageChecks(settings, adapters, context.asAbsolutePath('data')),

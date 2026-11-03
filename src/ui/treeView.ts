@@ -110,7 +110,7 @@ export class StatusBar implements vscode.Disposable {
   private readonly item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 50);
 
   constructor() {
-    this.item.name = 'Deep Threat Analytics';
+    this.item.name = 'DepThreat Analytics';
     this.item.command = 'workbench.view.extension.depthreat';
     this.idle();
   }
@@ -122,7 +122,7 @@ export class StatusBar implements vscode.Disposable {
   idle(): void {
     this.item.text = '$(shield) DepThreat';
     this.item.tooltip =
-      'Deep Threat Analytics: run "DepThreat: Scan Workspace" to analyze dependencies';
+      'DepThreat Analytics: run "DepThreat: Scan Workspace" to analyze dependencies';
     this.item.backgroundColor = undefined;
     this.item.show();
   }
@@ -135,7 +135,7 @@ export class StatusBar implements vscode.Disposable {
   show(summary: ScanSummary): void {
     const icon = summary.status === 'fail' ? '$(error)' : summary.count ? '$(warning)' : '$(pass)';
     this.item.text = `${icon} DepThreat${summary.count ? ` ${summary.count}` : ''}`;
-    this.item.tooltip = `Deep Threat Analytics: ${summary.text}`;
+    this.item.tooltip = `DepThreat Analytics: ${summary.text}`;
     this.item.backgroundColor =
       summary.status === 'fail'
         ? new vscode.ThemeColor('statusBarItem.errorBackground')

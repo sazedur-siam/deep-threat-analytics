@@ -208,7 +208,7 @@ export function addAllowlistedRule(text: string, ruleId: string): string {
 }
 
 export function defaultConfigTemplate(): string {
-  return `# Deep Threat Analytics project configuration.
+  return `# DepThreat Analytics project configuration.
 # Commit this file to share allowlists, ignores and policies with your team.
 
 # Packages or rules that are trusted everywhere (globs; prefix packages with "npm:" or "pypi:").
