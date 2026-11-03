@@ -14,6 +14,7 @@ import { summarizeScan, type TreeNode } from './model';
 import { ADAPTERS, currentSettings, type ScanService } from './scanService';
 import type { ScanResult } from '../core/engine';
 import type { FindingsTree } from './treeView';
+import { defaultReportPath, writeReport } from './reportWriter';
 
 const EXAMPLE_RULES = `# Custom DepThreat Analytics rules. Same format as the built-in rules.
 # A rule with the same id as a built-in rule replaces it; "enabled: false" turns it off.
@@ -87,6 +88,7 @@ export function registerCommands(
   service: ScanService,
   tree: FindingsTree,
   view: vscode.TreeView<TreeNode>,
+  extensionVersion?: string,
 ): vscode.Disposable[] {
   const afterConfigEdit = async (file: string, what: string) => {
     if (!vscode.workspace.isTrusted) {
@@ -207,6 +209,27 @@ export function registerCommands(
         // keep the user's existing file
       }
       await vscode.window.showTextDocument(vscode.Uri.file(file));
+    }),
+
+    reg('depthreat.exportReport', async (target?: vscode.Uri) => {
+      const result = service.lastResult;
+      if (!result) {
+        void vscode.window.showInformationMessage(
+          'DepThreat: run a scan before exporting a report.',
+        );
+        return undefined;
+      }
+      const folder = configFolder();
+      const uri =
+        target ??
+        (await vscode.window.showSaveDialog({
+          defaultUri: vscode.Uri.file(defaultReportPath(folder ?? '')),
+          filters: { Markdown: ['md'] },
+        }));
+      if (!uri) return undefined;
+      const file = await writeReport(result, uri.fsPath, currentSettings(), extensionVersion);
+      if (!target) await vscode.window.showTextDocument(vscode.Uri.file(file), { preview: true });
+      return file;
     }),
 
     reg('depthreat.exportFindings', async () => {
