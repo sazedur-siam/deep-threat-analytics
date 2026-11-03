@@ -52,6 +52,7 @@
     "neg": [
       "const ENV_ENDPOINT_NAME = 'AWS_EC2_METADATA_SERVICE_ENDPOINT';\nconst DEFAULT_ENDPOINT = 'http://169.254.169.254';\nconst DISABLED = 'AWS_EC2_METADATA_DISABLED';",
       "const host = process.env.GCE_METADATA_HOST || 'metadata.google.internal';\nconst url = `http://${host}/computeMetadata/v1/instance`;",
+      "const imdsHost = 'http://169.254.169.254';\nconst imdsEndpointPath = '/metadata/identity/oauth2/token';\nconst url = new URL(imdsEndpointPath, process.env.AZURE_POD_IDENTITY_AUTHORITY_HOST ?? imdsHost);",
       "const linkLocal = '169.254.0.0/16';"
     ],
     "also": [

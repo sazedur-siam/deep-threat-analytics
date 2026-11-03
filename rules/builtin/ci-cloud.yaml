@@ -60,7 +60,7 @@
       - regex: &cloud-metadata '169\.254\.169\.254|169\.254\.170\.2(?!\d)|fd00:ec2::254|100\.100\.100\.200|metadata\.google\.internal|computeMetadata/v1|/metadata/identity/oauth2/token|/latest/meta-data/iam/security-credentials|/latest/api/token'
     not:
       # Configuration knobs that only the official SDK credential providers implement.
-      - regex: 'AWS_EC2_METADATA_DISABLED|AWS_EC2_METADATA_SERVICE_ENDPOINT|AWS_CONTAINER_CREDENTIALS_(RELATIVE|FULL)_URI|ec2_metadata_service_endpoint|GCE_METADATA_(HOST|IP|ROOT)|IMDS_ENDPOINT|IDENTITY_ENDPOINT|MSI_ENDPOINT'
+      - regex: 'AWS_EC2_METADATA_DISABLED|AWS_EC2_METADATA_SERVICE_ENDPOINT|AWS_CONTAINER_CREDENTIALS_(RELATIVE|FULL)_URI|ec2_metadata_service_endpoint|GCE_METADATA_(HOST|IP|ROOT)|IMDS_ENDPOINT|IDENTITY_ENDPOINT|MSI_ENDPOINT|AZURE_POD_IDENTITY_AUTHORITY_HOST'
     scope: file
   message: '{package} contacts a cloud instance metadata endpoint in {file}, which can hand out IAM credentials'
 
