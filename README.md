@@ -9,7 +9,7 @@ Deep Threat Analytics is a Visual Studio Code extension that reads the source co
 
 Its rules, allowlists, severities and policies are all yours to customize.
 
-> **Pre-release.** Detection is pattern-based and tuned to avoid noise, but it can still flag legitimate packages. Use the Quick Fixes to ignore or allowlist them, and please [report false positives](https://github.com/sazedur-siam/deep-threat-analytics/issues).
+> **Note:** Detection is pattern-based and tuned to avoid noise, but it can still flag legitimate packages. Use the Quick Fixes to ignore or allowlist them, and please [report false positives](https://github.com/sazedur-siam/deep-threat-analytics/issues).
 
 ## Why another dependency scanner?
 
