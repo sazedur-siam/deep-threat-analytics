@@ -129,3 +129,45 @@
       - regex: '\baz\s+keyvault\s+secret\s+(list|show)\b'
     scope: line
   message: '{package} reads a secret store through its command-line tool in {file}'
+
+# --- Secret scanners ---------------------------------------------------------------------------
+# Shai-Hulud downloaded TruffleHog and ran it over the whole disk to harvest tokens. A runtime
+# dependency has no reason to download or run a secret scanner. Packages that wrap these tools
+# (pre-commit hooks, lint plugins) are dev tools, and dev dependencies are not scanned by
+# default, so they rarely show up here.
+- id: secrets-fs/secret-scanner-abuse
+  title: Downloads or runs a secret scanner
+  category: secrets-fs
+  severity: high
+  languages: ['*']
+  match:
+    any:
+      # Release downloads.
+      - regex: 'releases/download/\S*\b(trufflehog|gitleaks|noseyparker)|github\.com/(trufflesecurity/trufflehog|gitleaks/gitleaks|praetorian-inc/noseyparker)/releases'
+      # Command lines that scan for secrets.
+      - regex: '\btrufflehog\s+(filesystem|git|github|gitlab|docker|s3|gcs|--json|--only-verified)\b|\bgitleaks\s+(detect|dir|git|protect)\b|\bnoseyparker\s+(scan|report)\b|\bdetect-secrets\s+scan\b|\bggshield\s+secret\s+scan\b'
+      # Process spawn whose arguments name the binary.
+      - regex: '\b(exec|execSync|execFile|execFileSync|spawn|spawnSync|system|popen|Popen|run|check_output|check_call|call|Command|Command::new|shell_exec|passthru|proc_open|ProcessBuilder|getRuntime\(\)\.exec)\s*\(.{0,80}\b(trufflehog|gitleaks|noseyparker)\b(?![-\w.])'
+    scope: line
+  message: '{package} downloads or runs a secret scanner in {file}, a technique used to harvest tokens from disk'
+  references:
+    - https://github.com/trufflesecurity/trufflehog
+
+# --- CI tokens in the environment ----------------------------------------------------------------
+# Reading CI/source-control tokens and registry/cloud secrets in the same file, plus sending
+# something over the network. Requiring one name from each of the two groups guarantees at least
+# two distinct token names (a single regex used twice could match the same name) and matches how
+# harvesters operate: grab the CI token and the publish/cloud credentials together. A file that
+# only uses, say, NPM_TOKEN to publish, or GITHUB_TOKEN to call the GitHub API, does not fire.
+- id: exfiltration/ci-token-harvest
+  title: Harvests CI and cloud tokens and sends network requests
+  category: exfiltration
+  severity: high
+  languages: [javascript, typescript, python, go, rust, php, java, shell]
+  match:
+    all:
+      - regex: '\b(GITHUB_TOKEN|GH_TOKEN|ACTIONS_ID_TOKEN_REQUEST_TOKEN|ACTIONS_RUNTIME_TOKEN|CI_JOB_TOKEN|CI_JOB_JWT|GITLAB_TOKEN|CIRCLE_TOKEN|BITBUCKET_TOKEN|BUILDKITE_AGENT_ACCESS_TOKEN|SYSTEM_ACCESSTOKEN)\b'
+      - regex: '\b(NPM_TOKEN|NODE_AUTH_TOKEN|PYPI_TOKEN|PYPI_API_TOKEN|TWINE_PASSWORD|CARGO_REGISTRY_TOKEN|AWS_SECRET_ACCESS_KEY|AWS_SESSION_TOKEN|AZURE_CLIENT_SECRET|GOOGLE_APPLICATION_CREDENTIALS|DOCKERHUB_TOKEN|DOCKER_PASSWORD|VAULT_TOKEN)\b'
+      - regex: '\bhttps?\.(request|get)\s*\(|\bfetch\s*\(|\baxios\b|\bgot\s*\(|XMLHttpRequest|\brequests\.(post|get|put)\s*\(|urllib\.request|\burlopen\s*\(|http\.client|\bhttpx\.|\bhttp\.(Post|PostForm|Get|Head|NewRequest(WithContext)?)\(|\bnet\.Dial(Timeout)?\(|\.Do\(\s*req\b|\b(reqwest|ureq|isahc|surf)::|\bhyper::Client|\bTcpStream::connect\(|\bcurl_exec\s*\(|\bfile_get_contents\s*\(\s*[''"]https?://|\bfsockopen\s*\(|\bstream_socket_client\s*\(|\bHttpURLConnection\b|\bHttpClient\.new|\.openConnection\(|\bnew\s+Socket\(|\bOkHttpClient\b|\bnew\s+HttpPost\(|\bcurl\s.*(\s-d\b|--data|\s-F\b|--form|\s-T\b|--upload-file)|\bwget\s.*--post-(data|file)'
+    scope: file
+  message: '{package} reads several CI and cloud tokens from the environment and sends network requests in {file}'

