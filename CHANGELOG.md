@@ -6,6 +6,14 @@ All notable changes to this extension are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-11-03
+
+### Changed
+
+- Marketplace listing: the display name is now "DepThreat Analytics – Dependency Threat & Malware
+  Scanner", and the description and keywords now cover threats, vulnerabilities, data breaches and
+  leaks, hacked or backdoored packages, and malware, so the extension shows up in those searches.
+
 ## [1.0.2] - 2026-11-03
 
 ### Added
