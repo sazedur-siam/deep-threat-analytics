@@ -91,3 +91,31 @@
       - regex: '/repos/[^\s''"]*/contents/|\bcreateOrUpdateFileContents\b|\.(create_file|update_file)\s*\(|/repos/[^\s''"]*/git/(trees|commits|refs)\b|\bcreateCommitOnBranch\b'
     scope: file
   message: '{package} creates or updates GitHub Actions workflow files through the GitHub API in {file}'
+
+# Worms spread by publishing new versions of every package the stolen token can reach. Release
+# tooling (semantic-release, np, release-it, lerna, changesets) legitimately runs these commands,
+# but it is normally a devDependency, and dev dependencies are not scanned by default.
+- id: exec/registry-publish
+  title: Publishes packages to a registry
+  category: exec
+  severity: high
+  languages: [javascript, typescript, python, go, rust, php, java]
+  match:
+    all:
+      - regex: '\b(npm|pnpm|bun)\s+publish\b|\byarn\s+(npm\s+)?publish\b|\btwine\s+upload\b|\b(poetry|flit|hatch|uv)\s+publish\b|\bcargo\s+publish\b|\bgem\s+push\b|\bmvn\s+deploy\b|[''"`](npm|pnpm|yarn|bun|twine|poetry|uv|cargo|gem|mvn)(\.cmd|\.exe)?[''"`]\s*(,\s*(\[|\bList\.of\(|&\[)?|\)\s*\.args?\(\s*(&?\[)?)\s*[''"`](publish|upload|push|deploy)[''"`]|\blibnpmpublish\b|/-/npm/v1/tokens\b|upload\.pypi\.org/legacy|/api/v1/crates/new\b|/api/v1/gems\b'
+      - regex: '\b(exec|execSync|execFile|execFileSync|spawn|spawnSync|fork)\s*\(|\bexeca(Sync|Command)?\s*\(|\bsubprocess\.|\bos\.(system|popen)\s*\(|\bexec\.Command(Context)?\(|\bCommand::new\(|\b(shell_exec|passthru|proc_open|popen|system)\s*\(|\bRuntime\.getRuntime\(\)\.exec|\bnew\s+ProcessBuilder\(|\bfetch\s*\(|\bhttps?\.request\s*\(|\baxios\b|\brequests\.(put|post)\s*\(|\bhttpx\.|\bhttp\.NewRequest|\breqwest::|\bcurl_exec\s*\(|\bHttpClient\b|\blibnpmpublish\b'
+    scope: file
+  message: '{package} publishes packages to a registry (npm/PyPI/crates.io/RubyGems/Maven) in {file}; self-publishing is how supply-chain worms spread'
+
+- id: exec/registry-publish-with-token
+  title: Publishes packages using harvested registry tokens
+  category: exec
+  severity: critical
+  languages: [javascript, typescript, python, go, rust, php, java]
+  match:
+    all:
+      - regex: '\b(npm|pnpm|bun)\s+publish\b|\byarn\s+(npm\s+)?publish\b|\btwine\s+upload\b|\b(poetry|flit|hatch|uv)\s+publish\b|\bcargo\s+publish\b|\bgem\s+push\b|\bmvn\s+deploy\b|[''"`](npm|pnpm|yarn|bun|twine|poetry|uv|cargo|gem|mvn)(\.cmd|\.exe)?[''"`]\s*(,\s*(\[|\bList\.of\(|&\[)?|\)\s*\.args?\(\s*(&?\[)?)\s*[''"`](publish|upload|push|deploy)[''"`]|\blibnpmpublish\b|/-/npm/v1/tokens\b|upload\.pypi\.org/legacy|/api/v1/crates/new\b|/api/v1/gems\b'
+      - regex: '\b(exec|execSync|execFile|execFileSync|spawn|spawnSync|fork)\s*\(|\bexeca(Sync|Command)?\s*\(|\bsubprocess\.|\bos\.(system|popen)\s*\(|\bexec\.Command(Context)?\(|\bCommand::new\(|\b(shell_exec|passthru|proc_open|popen|system)\s*\(|\bRuntime\.getRuntime\(\)\.exec|\bnew\s+ProcessBuilder\(|\bfetch\s*\(|\bhttps?\.request\s*\(|\baxios\b|\brequests\.(put|post)\s*\(|\bhttpx\.|\bhttp\.NewRequest|\breqwest::|\bcurl_exec\s*\(|\bHttpClient\b|\blibnpmpublish\b'
+      - regex: '[''"`/\\]\.(npmrc|pypirc)\b|\b(NPM_TOKEN|NODE_AUTH_TOKEN|NPM_AUTH_TOKEN|GITHUB_TOKEN|GH_TOKEN|GITHUB_PAT|PYPI_TOKEN|PYPI_API_TOKEN|TWINE_PASSWORD|CARGO_REGISTRY_TOKEN|GEM_HOST_API_KEY)\b|\bghp_[A-Za-z0-9]{4}|\bgithub_pat_|\bgh\s+auth\s+token\b|[''"`]gh[''"`]\s*,\s*\[?\s*[''"`]auth[''"`]'
+    scope: file
+  message: '{package} reads registry or GitHub tokens and publishes packages in {file}, the self-propagation pattern of npm/PyPI worms'

@@ -130,5 +130,42 @@
         "url := fmt.Sprintf(\"https://api.example.invalid/repos/%s/contents/.github/workflows/x.yml\", r)"
       ]
     ]
+  },
+  "exec/registry-publish": {
+    "lang": "js",
+    "pos": [
+      "execSync('npm publish --access public', { cwd: tmp });",
+      "spawnSync('npm', ['publish', dir]);"
+    ],
+    "neg": [
+      "console.log('Done. Run npm publish to release your package.');",
+      "execSync('npm pack', { cwd: tmp });",
+      "spawnSync('npm', ['install']);"
+    ],
+    "also": [
+      ["py", "subprocess.run([\"twine\", \"upload\", \"dist/*\"], check=True)"],
+      ["go", "exec.Command(\"cargo\", \"publish\", \"--allow-dirty\").Run()"],
+      ["rs", "Command::new(\"cargo\").arg(\"publish\").status()?;"],
+      ["java", "new ProcessBuilder(\"npm\", \"publish\").start();"],
+      ["php", "shell_exec('gem push pkg.gem');"]
+    ]
+  },
+  "exec/registry-publish-with-token": {
+    "lang": "js",
+    "pos": [
+      "const token = process.env.NPM_TOKEN;\nfs.writeFileSync(path.join(dir, '.npmrc'), `//registry.example.invalid/:_authToken=${token}`);\nexecSync('npm publish', { cwd: dir });",
+      "const t = execSync('gh auth token').toString();\nspawn('npm', ['publish']);"
+    ],
+    "neg": [
+      "execSync('npm publish', { cwd: dir });",
+      "const t = process.env.NPM_TOKEN;\nconsole.log('run npm publish when ready');"
+    ],
+    "also": [
+      [
+        "py",
+        "token = os.environ[\"PYPI_TOKEN\"]\nsubprocess.run([\"twine\", \"upload\", \"-p\", token, \"dist/*\"])"
+      ],
+      ["go", "t := os.Getenv(\"GH_TOKEN\")\nexec.Command(\"npm\", \"publish\").Run()"]
+    ]
   }
 }
