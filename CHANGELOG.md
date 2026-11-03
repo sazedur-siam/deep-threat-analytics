@@ -6,6 +6,15 @@ All notable changes to this extension are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-03
+
+First release (non-pre-release) on the Visual Studio Marketplace.
+
+### Changed
+
+- Published as a regular release so it installs without opting into pre-releases. Features are
+  the same as 0.1.0.
+
 ## [0.1.0] - 2026-11-02
 
 First pre-release.
