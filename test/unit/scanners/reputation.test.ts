@@ -9,7 +9,7 @@ import {
 } from '../../../src/scanners/reputation';
 
 const DATA = path.resolve(__dirname, '../../../data');
-const ECOSYSTEMS: EcosystemId[] = ['npm', 'pypi', 'go', 'cargo', 'composer', 'maven'];
+const ECOSYSTEMS: EcosystemId[] = ['npm', 'pypi', 'go', 'cargo', 'composer', 'maven', 'vscode'];
 const tops = {} as Record<EcosystemId, string[]>;
 let npmTop: string[];
 let pypiTop: string[];
@@ -107,6 +107,15 @@ describe('checkTyposquat', () => {
     ],
     ['maven', 'org.apache.loging.log4j:log4j-core', 'org.apache.logging.log4j:log4j-core'],
     ['maven', 'org.sprlngframework:spring-core', 'org.springframework:spring-core'],
+    ['vscode', 'ms-pythom.python', 'ms-python.python'],
+    ['vscode', 'esbenp.prettier-vscod', 'esbenp.prettier-vscode'],
+    ['vscode', 'Esbenp.Prettier-VSCod', 'esbenp.prettier-vscode'],
+    ['vscode', 'esbnep.prettier-vscode', 'esbenp.prettier-vscode'],
+    ['vscode', 'dbaeumer.vscode-eslnt', 'dbaeumer.vscode-eslint'],
+    ['vscode', 'gihtub.copilot', 'github.copilot'],
+    ['vscode', 'ms-azure-tools.vscode-docker', 'ms-azuretools.vscode-docker'],
+    ['vscode', 'eamodio.gitIens', 'eamodio.gitlens'],
+    ['vscode', 'rust-lang.rust-analyser', 'rust-lang.rust-analyzer'],
   ] as const)('%s: flags %s as a squat of %s', (e, name, target) => {
     const f = checkTyposquat(ref(e, name), tops[e]);
     expect(f?.title).toBe(`Possible typosquat of ${target}`);
@@ -172,6 +181,17 @@ describe('checkTyposquat', () => {
     ['maven', 'com.example:guava'],
     ['maven', 'org.apache.poi:poi-scratchpad'],
     ['maven', 'junit'],
+    // Extensions: the same name from another publisher, siblings, forks, short ids.
+    ['vscode', 'acme.python'],
+    ['vscode', 'someone.prettier-vscode'],
+    ['vscode', 'github.copilot-labs'],
+    ['vscode', 'esbenp.prettier-vscode-fork'],
+    ['vscode', 'ms-ceintl.vscode-language-pack-nl'],
+    ['vscode', 'ms-vscode.remote-ssh'],
+    ['vscode', 'redhat.vscode-commons'],
+    ['vscode', 'vue.volar2'],
+    ['vscode', 'my-company.internal-tools'],
+    ['vscode', 'nodot'],
   ] as const)('%s: does not flag %s', (e, name) => {
     expect(checkTyposquat(ref(e, name), tops[e])).toBeUndefined();
   });
