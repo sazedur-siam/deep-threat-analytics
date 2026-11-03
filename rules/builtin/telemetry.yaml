@@ -1,0 +1,54 @@
+# Known analytics, telemetry and error-reporting collectors. Talking to them is usually
+# legitimate (SDKs, CLIs that report usage), so these rules are informational: they tell you
+# which dependencies phone home, not that they are malicious. Patterns name ingestion hosts or
+# paths only, so links to vendor documentation (docs.segment.com, posthog.com/docs) don't match.
+- id: network/telemetry-endpoint
+  title: Sends telemetry to an analytics service
+  category: network
+  severity: info
+  languages: ['*']
+  match:
+    any:
+      # Segment
+      - regex: '\b(api|cdn)\.segment\.(io|com)\b|\bsegmentapis\.com\b'
+      # Mixpanel
+      - regex: '\bapi(-[a-z]+)?\.mixpanel\.com\b|\bcdn\.mxpnl\.com\b'
+      # Amplitude
+      - regex: '\bapi2?\.(eu\.)?amplitude\.com\b'
+      # PostHog cloud ingestion
+      - regex: '\b(us|eu)(-assets)?\.i\.posthog\.com\b|\bapp\.posthog\.com/(capture|batch|decide|e|i)\b'
+      # Google Analytics (Universal, GA4 and Measurement Protocol) and Google Tag Manager
+      - regex: 'google-analytics\.com/(debug/)?((mp|g|r|j)/)?(collect|batch)\b|google-analytics\.com/(analytics|ga)\.js|analytics\.google\.com/g/collect'
+      - regex: 'googletagmanager\.com/(gtag/js|gtm\.js|ns\.html)'
+      # Heap
+      - regex: '\bheapanalytics\.com/(api/|h\b|js/)'
+      # RudderStack
+      - regex: '\bdataplane\.rudderstack\.com\b|\bcdn\.rudderlabs\.com\b'
+      # Customer.io tracking and CDP APIs
+      - regex: '\b(track|cdp)(-eu)?\.customer\.io\b'
+      # Plausible
+      - regex: '\bplausible\.io/(api/event|js/)'
+      # Datadog browser (RUM, logs) intake
+      - regex: '\bbrowser-intake-([a-z0-9]+-)?datadoghq\.(com|eu)\b|\bhttp-intake\.logs\.([a-z0-9]+\.)?datadoghq\.(com|eu)\b'
+      # Azure Application Insights
+      - regex: '\bdc\.services\.visualstudio\.com\b|\.in\.applicationinsights\.azure\.com\b|\bdc\.applicationinsights\.(azure|microsoft)\.com\b'
+      # Honeycomb
+      - regex: '\bapi\.(eu1\.)?honeycomb\.io\b'
+    scope: line
+  message: '{package} sends usage data to a known analytics or telemetry service in {file}. This is common in SDKs and CLIs and not malicious in itself, but check what is collected and whether it can be turned off.'
+
+- id: network/error-reporting-endpoint
+  title: Sends error reports to a crash-reporting service
+  category: network
+  severity: info
+  languages: ['*']
+  match:
+    any:
+      # Sentry DSNs and ingest hosts (o123.ingest.sentry.io, o123.ingest.us.sentry.io)
+      - regex: '\bingest\.([a-z]{2}\.)?sentry\.io\b'
+      # Bugsnag
+      - regex: '\b(notify|sessions)\.bugsnag\.com\b'
+      # Rollbar
+      - regex: '\bapi\.rollbar\.com/api/'
+    scope: line
+  message: '{package} sends error reports to a crash-reporting service in {file}. Error reports can include stack traces, file paths and environment details; check what is sent and whether it can be turned off.'

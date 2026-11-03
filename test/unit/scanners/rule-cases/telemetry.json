@@ -1,0 +1,52 @@
+{
+  "network/telemetry-endpoint": {
+    "lang": "js",
+    "pos": [
+      "fetch('https://api.segment.io/v1/track', { method: 'POST', body })",
+      "const host = 'https://us.i.posthog.com';",
+      "const MIXPANEL = 'https://api-eu.mixpanel.com/track';",
+      "post('https://api2.amplitude.com/2/httpapi', events)",
+      "const url = `https://www.google-analytics.com/mp/collect?measurement_id=${id}`;",
+      "s.src = 'https://www.googletagmanager.com/gtag/js?id=' + id;",
+      "https.request('https://heapanalytics.com/api/track')",
+      "const dataPlane = 'https://acme.dataplane.rudderstack.com';",
+      "axios.post('https://track-eu.customer.io/api/v1/customers/1/events', e)",
+      "navigator.sendBeacon('https://plausible.io/api/event', payload)",
+      "const site = 'browser-intake-us5-datadoghq.com';",
+      "endpointUrl: 'https://dc.services.visualstudio.com/v2/track',",
+      "const ingest = 'https://westeurope-5.in.applicationinsights.azure.com/';"
+    ],
+    "neg": [
+      "const docs = 'https://segment.com/docs/connections/sources/';",
+      "const help = 'https://docs.segment.com/';",
+      "const guide = 'https://posthog.com/docs/libraries/node';",
+      "const link = 'https://developers.google.com/analytics/devguides/collection/ga4';",
+      "const site = 'https://mixpanel.com/pricing';",
+      "fetch('https://api.example.com/collect')"
+    ],
+    "also": [
+      ["py", "requests.post('https://api.segment.io/v1/batch', json=batch)"],
+      ["py", "HOST = 'https://api.honeycomb.io'"],
+      ["go", "const endpoint = \"https://api.eu1.honeycomb.io\""],
+      ["rs", "let url = \"https://www.google-analytics.com/collect\";"],
+      ["php", "$url = 'https://api.mixpanel.com/track';"],
+      ["java", "String url = \"https://eu.i.posthog.com/capture/\";"],
+      ["sh", "curl -X POST https://plausible.io/api/event -d \"$payload\""]
+    ]
+  },
+  "network/error-reporting-endpoint": {
+    "lang": "js",
+    "pos": [
+      "Sentry.init({ dsn: 'https://abc123@o450000.ingest.sentry.io/5500000' });",
+      "const dsn = 'https://key@o1.ingest.us.sentry.io/2';",
+      "const NOTIFY = 'https://notify.bugsnag.com';",
+      "post('https://api.rollbar.com/api/1/item/', item)"
+    ],
+    "neg": [
+      "const docs = 'https://docs.sentry.io/platforms/node/';",
+      "const site = 'https://www.bugsnag.com/';",
+      "const dsn = process.env.SENTRY_DSN;"
+    ],
+    "also": [["py", "sentry_sdk.init(dsn='https://k@o9.ingest.de.sentry.io/9')"]]
+  }
+}
