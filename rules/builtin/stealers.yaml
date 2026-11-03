@@ -1,0 +1,28 @@
+# Info-stealers, blockchain command-and-control, destructive payloads and download-and-execute
+# loaders (MALFEX/Solara-style token stealers, GlassWorm/EtherHiding C2, disk-wiping Go modules).
+
+- id: secrets-fs/messenger-session-theft
+  title: Reads messenger or game-client sessions
+  category: secrets-fs
+  severity: high
+  languages: ['*']
+  match:
+    any:
+      # Discord desktop clients keep their auth token in Local Storage/leveldb.
+      - regex: '[dD]iscord(canary|ptb|development)?[''"`]?\s*[,/\\]+\s*[''"`]?Local Storage'
+      # Prefix of the DPAPI-encrypted Discord token inside leveldb.
+      - regex: 'dQw4w9WgXcQ:'
+      # Discord token regexes ([\w-]{24}\.[\w-]{6}\.[\w-]{27} and mfa\.[\w-]{84}).
+      - regex: '\{2[4-6](,\d+)?\}\\?\.\S{0,20}\{6\}\\?\.\S{0,20}\{\d{2,3}(,\d+)?\}'
+      - regex: '\bmfa\\?\.\S{0,20}\{84\}'
+      # Telegram Desktop session folder and its key file.
+      - regex: 'Telegram ?Desktop[''"`]?\s*[,/\\]+\s*[''"`]?tdata\b'
+      - regex: '\bkey_datas\b|D877F783D5D3EF8C'
+      # Slack, Signal and WhatsApp desktop session stores.
+      - regex: '\bSlack[''"`]?\s*[,/\\]+\s*[''"`]?(Local Storage|Cookies\b)'
+      - regex: '\bSignal[''"`]?\s*[,/\\]+\s*[''"`]?(Local Storage|sql[''"`]?\s*[,/\\]+\s*[''"`]?db\.sqlite)'
+      - regex: '\bWhatsApp[''"`]?\s*[,/\\]+\s*[''"`]?(Local Storage|IndexedDB|Session Storage)|WhatsAppDesktop_cv1g1gvanyjgm'
+      # Steam machine-auth (ssfn*) files and the saved-login list.
+      - regex: '[''"`/\\]ssfn(\d|\*|[''"`])|[/\\''"`]loginusers\.vdf\b'
+    scope: line
+  message: '{package} reads Discord, Telegram, Slack, Signal, WhatsApp or Steam session data in {file}'

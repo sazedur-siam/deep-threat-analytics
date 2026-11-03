@@ -1,0 +1,30 @@
+{
+  "secrets-fs/messenger-session-theft": {
+    "lang": "js",
+    "pos": [
+      "const p = path.join(process.env.APPDATA, 'discordcanary', 'Local Storage', 'leveldb');",
+      "if (line.includes('dQw4w9WgXcQ:')) tokens.push(line);",
+      "const re = /[\\w-]{24}\\.[\\w-]{6}\\.[\\w-]{27}/g;",
+      "const mfa = /mfa\\.[\\w-]{84}/g;",
+      "const files = glob.sync(steamPath + '/ssfn*');"
+    ],
+    "neg": [
+      "const theme = window.localStorage.getItem('discord-theme');",
+      "const invite = 'https://discord.example.invalid/invite/abc';",
+      "const re = /^[\\w-]{3,32}$/;",
+      "const signal = new AbortController().signal;",
+      "const about = 'Telegram Desktop is a messaging app';"
+    ],
+    "also": [
+      ["py", "tdata = os.path.join(os.environ['APPDATA'], 'Telegram Desktop', 'tdata')"],
+      [
+        "go",
+        "p := filepath.Join(home, \"Library\", \"Application Support\", \"Signal\", \"sql\", \"db.sqlite\")"
+      ],
+      ["rs", "let p = home.join(\"AppData/Roaming/Slack/Cookies\");"],
+      ["php", "$p = getenv('APPDATA') . '/WhatsApp/Local Storage/leveldb';"],
+      ["java", "Path p = Paths.get(steam, \"config\", \"loginusers.vdf\");"],
+      ["sh", "tar czf /tmp/t.tgz \"$HOME/.local/share/TelegramDesktop/tdata\""]
+    ]
+  }
+}
