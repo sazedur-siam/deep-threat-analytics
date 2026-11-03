@@ -113,9 +113,9 @@
       - regex: '\b(curl|wget)\b[^\n|]*\|\s*(sudo\s+(-\S+\s+)*)?((ba|z|da|k)?sh|python[23]?|perl|ruby|node)\b'
       - regex: '\b(ba|z|da)?sh\s+-c\s+[''"]?\$\(\s*(curl|wget)\b|\b((ba|z)?sh|source)\s+<\(\s*(curl|wget)\b'
       # PowerShell: iex (iwr …), IEX (New-Object Net.WebClient).DownloadString(…), irm … | iex.
-      - regex: '\b(iex|Invoke-Expression)\b[^\n]*\b(iwr|irm|Invoke-WebRequest|Invoke-RestMethod|DownloadString|DownloadData|Net\.WebClient)\b'
+      - regex: '\b(iex|Invoke-Expression)\s*[(\s][(\s]*(iwr|irm|Invoke-WebRequest|Invoke-RestMethod|New-Object\s+(System\.)?Net\.WebClient|\$\w+\.Download(String|Data))\b'
         flags: i
-      - regex: '\b(iwr|irm|Invoke-WebRequest|Invoke-RestMethod|DownloadString)\b[^\n]*\|\s*(iex|Invoke-Expression)\b'
+      - regex: '\b(iwr|irm|Invoke-WebRequest|Invoke-RestMethod|DownloadString)\b[^\n|]*\|\s*(iex|Invoke-Expression)\b'
         flags: i
       # Windows LOLBins that download a file which is then started, or run a remote HTA.
       - regex: '\b(certutil(\.exe)?\b[^\n]*[-/]urlcache|bitsadmin(\.exe)?\b[^\n]*/transfer)\b[^\n]*(&&|&|;|\|\|)[^\n]*\.(exe|bat|cmd|ps1|vbs|scr|dll)\b'

