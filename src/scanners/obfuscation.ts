@@ -49,7 +49,7 @@ function codePointLabel(cp: number): string {
 }
 
 /** Format, private-use and variation-selector characters render as nothing or as a box. */
-const UNREADABLE = /[\p{Cf}\p{Co}︀-️\u{E0100}-\u{E01EF}]/gu;
+const UNREADABLE = /[\p{Cf}\p{Co}\u{FE00}-\u{FE0F}\u{E0100}-\u{E01EF}]/gu;
 
 /** Replaces characters a reader cannot see with `<U+XXXX>` so evidence never carries them raw. */
 export function escapeInvisible(text: string): string {
@@ -81,7 +81,8 @@ function isInvisibleCodePoint(cp: number): boolean {
 
 /** Quick pre-check so files without any candidate character skip the per-code-point walk. */
 const ANY_INVISIBLE =
-  /[​-‍⁠-⁤﻿︀-️-\u{E0000}-\u{E007F}\u{E0100}-\u{E01EF}\u{F0000}-\u{FFFFD}\u{100000}-\u{10FFFD}]/u;
+  // eslint-disable-next-line no-misleading-character-class -- bare variation selectors are the target
+  /[\u{200B}-\u{200D}\u{2060}-\u{2064}\u{FEFF}\u{FE00}-\u{FE0F}\u{E000}-\u{F8FF}\u{E0000}-\u{E007F}\u{E0100}-\u{E01EF}\u{F0000}-\u{FFFFD}\u{100000}-\u{10FFFD}]/u;
 const PICTOGRAPHIC = /\p{Extended_Pictographic}|\p{Emoji_Modifier}/u;
 const isPictographic = (cp: number | undefined) =>
   cp !== undefined && PICTOGRAPHIC.test(String.fromCodePoint(cp));
@@ -110,8 +111,9 @@ function invisibleRuns(text: string): InvisibleRun[] {
     let invisible = isInvisibleCodePoint(c.cp);
     // A BOM at offset 0 is an encoding marker, not content.
     if (c.cp === 0xfeff && c.off === 0) invisible = false;
-    // Emoji presentation selectors and ZWJ glue emoji together (❤️, 👨‍👩‍👧): they are
-    // part of a visible glyph whenever they touch a pictographic code point.
+    // Emoji presentation selectors and ZWJ glue emoji together (red heart + FE0F; family =
+    // man ZWJ woman ZWJ girl): they are part of a visible glyph whenever they touch a
+    // pictographic code point.
     if (
       invisible &&
       (c.cp === 0xfe0e || c.cp === 0xfe0f || c.cp === 0x200d) &&
@@ -147,10 +149,11 @@ function invisibleRuns(text: string): InvisibleRun[] {
 
 /**
  * Runs with a legitimate, visible purpose. A single character cannot carry a payload, so lone
- * variation selectors (CJK ideographic variants, keycaps like 1️⃣), lone joiners (Persian/Indic
- * text), lone private-use glyphs (icon fonts) and lone tags are ignored. Lone zero-width
- * spaces/word joiners still count, since scattering those is how text steganography works.
- * Tag sequences right after 🏴 are emoji subdivision flags (England, Scotland, Wales).
+ * variation selectors (CJK ideographic variants, keycaps like 1 + FE0F + U+20E3), lone joiners
+ * (Persian/Indic text), lone private-use glyphs (icon fonts) and lone tags are ignored. Lone
+ * zero-width spaces/word joiners still count, since scattering those is how text steganography
+ * works. Tag sequences right after U+1F3F4 (black flag) are emoji subdivision flags (England,
+ * Scotland, Wales).
  */
 function isBenignRun(run: InvisibleRun): boolean {
   const first = run.cps[0] as number;
@@ -200,8 +203,8 @@ function invisibleUnicodeDetections(text: string, sink: RegExp): Detection[] {
 }
 
 /** LRE RLE PDF LRO RLO and LRI RLI FSI PDI. */
-const BIDI = /[‪-‮⁦-⁩]/g;
-const ANY_BIDI = /[‪-‮⁦-⁩]/;
+const BIDI = /[\u{202A}-\u{202E}\u{2066}-\u{2069}]/gu;
+const ANY_BIDI = /[\u{202A}-\u{202E}\u{2066}-\u{2069}]/u;
 
 /**
  * Whether a line leaves a bidi embedding, override or isolate open (or closes one it never
