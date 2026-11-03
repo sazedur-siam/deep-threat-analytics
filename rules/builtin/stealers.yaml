@@ -97,3 +97,33 @@
         flags: i
     scope: line
   message: '{package} contains a destructive command (disk wipe, root or home deletion, or backup removal) in {file}'
+
+- id: dynamic-code/download-and-execute
+  title: Downloads code and runs it
+  category: dynamic-code
+  severity: critical
+  languages: ['*']
+  match:
+    any:
+      # exec(urlopen(u).read()), exec(requests.get(u).text), eval(await (await fetch(u)).text()).
+      - regex: '(^|[^.\w])(exec|eval)\s*\([^\n]*\b(urlopen|requests\.get|httpx\.get|fetch|axios(\.get)?|got(\.get)?|https?\.get)\s*\('
+      - regex: '\bnew\s+Function\s*\([^\n]*\b(fetch|axios(\.get)?|got(\.get)?)\s*\('
+      - regex: '(\bvm\.(runInThisContext|runInNewContext|runInContext|compileFunction)|\bnew\s+vm\.Script)\s*\([^\n]*\b(fetch|axios(\.get)?|got(\.get)?)\s*\('
+      # Shell pipes: curl … | sh, wget -O - … | sudo bash, bash -c "$(curl …)", bash <(curl …).
+      - regex: '\b(curl|wget)\b[^\n|]*\|\s*(sudo\s+(-\S+\s+)*)?((ba|z|da|k)?sh|python[23]?|perl|ruby|node)\b'
+      - regex: '\b(ba|z|da)?sh\s+-c\s+[''"]?\$\(\s*(curl|wget)\b|\b((ba|z)?sh|source)\s+<\(\s*(curl|wget)\b'
+      # PowerShell: iex (iwr …), IEX (New-Object Net.WebClient).DownloadString(…), irm … | iex.
+      - regex: '\b(iex|Invoke-Expression)\b[^\n]*\b(iwr|irm|Invoke-WebRequest|Invoke-RestMethod|DownloadString|DownloadData|Net\.WebClient)\b'
+        flags: i
+      - regex: '\b(iwr|irm|Invoke-WebRequest|Invoke-RestMethod|DownloadString)\b[^\n]*\|\s*(iex|Invoke-Expression)\b'
+        flags: i
+      # Windows LOLBins that download a file which is then started, or run a remote HTA.
+      - regex: '\b(certutil(\.exe)?\b[^\n]*[-/]urlcache|bitsadmin(\.exe)?\b[^\n]*/transfer)\b[^\n]*(&&|&|;|\|\|)[^\n]*\.(exe|bat|cmd|ps1|vbs|scr|dll)\b'
+        flags: i
+      - regex: '\bmshta(\.exe)?[''"]?[\s,]+[''"]?https?://'
+        flags: i
+    not:
+      # Install instructions printed for the user rather than run.
+      - regex: '\bconsole\.(log|info|warn|error)\s*\(|(^|[^.\w])print\s*\(|^\s*echo\s|\blog(ger)?\.(info|warn|warning|error|debug)\s*\(|\bfmt\.Print|System\.out\.print|\bprintln!'
+    scope: line
+  message: '{package} downloads code and executes it immediately in {file}'
