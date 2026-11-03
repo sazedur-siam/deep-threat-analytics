@@ -15,6 +15,28 @@ DepThreat Analytics is a Visual Studio Code extension that reads the source code
 
 > **Note:** Detection is pattern-based and tuned to avoid noise, but it can still flag legitimate packages. Use the Quick Fixes to ignore or allowlist them, and please [report false positives](https://github.com/sazedur-siam/deep-threat-analytics/issues).
 
+## See it in action
+
+![Scanning a project: flagged dependencies get squiggles, hovers explain the finding, Quick Fixes and the sidebar show the details](media/screenshots/demo.gif)
+
+**Inline diagnostics and hovers** on each flagged dependency in the manifest:
+
+![Hover on a flagged npm dependency showing that it sends environment variables over the network](media/screenshots/diagnostics-hover.png)
+
+**Quick Fixes** to jump to the offending code, ignore a rule or allowlist the package:
+
+![Quick Fix menu on a flagged dependency](media/screenshots/quick-fixes.png)
+
+**The findings sidebar**, with policy violations on top and every finding grouped by package and severity:
+
+![DepThreat Analytics sidebar with policy violations and findings per package](media/screenshots/sidebar.png)
+
+**A Markdown report** of the scan to share or attach to a review:
+
+![Markdown report preview with policy violations and findings by package](media/screenshots/report.png)
+
+_Screenshots use harmless test fixtures that only imitate malicious patterns._
+
 ## Why another dependency scanner?
 
 Vulnerability scanners match package versions against databases of _known_ CVEs. That misses:
