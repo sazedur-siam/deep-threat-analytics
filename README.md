@@ -257,7 +257,7 @@ otherpkg>=2     # depthreat-ignore[exec/python-shell, obfuscation/*]
 - [x] Diagnostics, hovers, Quick Fixes, sidebar, status bar
 - [x] OSV.dev vulnerabilities, typosquats and registry reputation
 - [x] 2026 attack coverage: invisible Unicode, IDE/AI-agent/CI tampering, worm self-publishing, CI and cloud secret theft, messenger session theft, blockchain C2, disk wipers, download-and-execute
-- [ ] 0.1.0 pre-release on the Visual Studio Marketplace
+- [x] Stable 1.0 release on the Visual Studio Marketplace
 - [x] Go, Rust, PHP and Java
 - [ ] SARIF export
 
