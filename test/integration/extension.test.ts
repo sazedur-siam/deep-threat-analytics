@@ -32,7 +32,7 @@ function lineOf(name: string): number {
     .findIndex((l) => l.includes(`"${name}"`));
 }
 
-suite('Deep Threat Analytics', () => {
+suite('DepThreat Analytics', () => {
   test('registers its commands', async () => {
     await api();
     const commands = await vscode.commands.getCommands(true);
@@ -81,7 +81,7 @@ suite('Deep Threat Analytics', () => {
       .flatMap((h) => h.contents)
       .map((c) => (typeof c === 'string' ? c : 'value' in c ? c.value : ''))
       .join('\n');
-    assert.match(text, /Deep Threat Analytics/);
+    assert.match(text, /DepThreat Analytics/);
   });
 
   test('offers quick fixes on flagged dependencies', async () => {
