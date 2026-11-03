@@ -74,16 +74,28 @@ The status bar shows the result of the last scan and turns red when a policy fai
 
 ### Commands
 
-| Command                                    | What it does                                               |
-| ------------------------------------------ | ---------------------------------------------------------- |
-| `DepThreat: Scan Workspace`                | Scan every manifest in the workspace                       |
-| `DepThreat: Scan This Manifest`            | Scan the selected or open manifest                         |
-| `DepThreat: Export Findings (JSON)`        | Save the last scan's findings, violations and stats        |
-| `DepThreat: Create or Open Project Config` | Create `.depthreat/config.yaml` from a commented template  |
-| `DepThreat: Open Custom Rules`             | Create `.depthreat/rules/custom.yaml` with an example rule |
-| `DepThreat: Clear Scan Cache`              | Forget cached per-package results                          |
+| Command                                    | What it does                                                                                           |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
+| `DepThreat: Scan Workspace`                | Scan every manifest in the workspace                                                                   |
+| `DepThreat: Scan This Manifest`            | Scan the selected or open manifest                                                                     |
+| `DepThreat: Export Report (Markdown)`      | Save a readable report of the last scan (summary, severities, policy violations, findings per package) |
+| `DepThreat: Export Findings (JSON)`        | Save the last scan's findings, violations and stats                                                    |
+| `DepThreat: Create or Open Project Config` | Create `.depthreat/config.yaml` from a commented template                                              |
+| `DepThreat: Open Custom Rules`             | Create `.depthreat/rules/custom.yaml` with an example rule                                             |
+| `DepThreat: Clear Scan Cache`              | Forget cached per-package results                                                                      |
 
 Results are cached per package version and rule set, so rescans only re-read packages that changed.
+
+### Markdown report
+
+Run **DepThreat: Export Report (Markdown)**, or turn on `depthreat.report.autoWrite` to keep `.depthreat/report.md` up to date after every scan. The report contains:
+
+- a summary: packages scanned, issues, suppressed findings, and policy status
+- breakdowns by severity, category and ecosystem
+- policy violations
+- every finding grouped by package, with its location, the matching code, and fixed versions when known
+
+Package names and code from dependencies are escaped, so a malicious package cannot inject links or HTML into the report. Add `.depthreat/report.md` to `.gitignore` if you don't want to commit it.
 
 ## Privacy and data
 
@@ -122,6 +134,7 @@ In a trusted workspace, the interpreter runs in isolated mode (`python -I`) from
 | `depthreat.python.interpreterPath`          | `""`                  | Python interpreter used to find `site-packages`                |
 | `depthreat.online.osv.enabled`              | `false`               | Query OSV.dev for known vulnerabilities                        |
 | `depthreat.online.registryMetadata.enabled` | `false`               | Check npm/PyPI metadata (age, deprecation, maintainers)        |
+| `depthreat.report.autoWrite`                | `false`               | Write `.depthreat/report.md` after every scan                  |
 
 ### Project config: `.depthreat/config.yaml`
 
