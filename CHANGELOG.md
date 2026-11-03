@@ -6,9 +6,9 @@ All notable changes to this extension are documented here. The format follows
 
 ## [Unreleased]
 
-## [0.2.0] - 2026-11-03
+## [1.0.0] - 2026-11-03
 
-First release (non-pre-release) on the Visual Studio Marketplace.
+First stable release (1.0.0) on the Visual Studio Marketplace.
 
 ### Added
 
