@@ -23,19 +23,21 @@ DepThreat Analytics looks at the code itself, entirely on your machine. When you
 
 ## What it detects
 
-| Category      | Examples                                                                                                  |
-| ------------- | --------------------------------------------------------------------------------------------------------- |
-| Exfiltration  | Reading `process.env` / `os.environ` or secret files **and** sending data over the network                |
-| Secrets & FS  | Access to `~/.ssh`, `~/.aws/credentials`, `~/.npmrc`, `.env`, browser cookie stores, the keychain         |
-| Exec          | `child_process.exec`, `subprocess` with `shell=True`, reverse-shell patterns                              |
-| Dynamic code  | `eval` / `new Function` / `exec` on non-literal input, decode-and-execute, `marshal.loads`, `vm` contexts |
-| Obfuscation   | High-entropy base64/hex payloads that get decoded and executed, javascript-obfuscator signatures          |
-| Install hooks | npm lifecycle scripts, `setup.py` code, executable `.pth` files, Rust `build.rs`, Composer plugins        |
-| Network       | Webhook, paste and tunneling endpoints, DNS exfiltration, hardcoded IP addresses, public-IP lookups       |
-| Persistence   | Writes to shell profiles, crontab, LaunchAgents, systemd units, Windows Run keys                          |
-| Crypto mining | Mining pool URLs, miner binaries, crypto-wallet file access                                               |
-| Reputation    | Typosquats (offline); optional: new, deprecated, yanked or unregistered packages, maintainer changes      |
-| Vulnerability | Known CVEs and malicious-package advisories from [OSV.dev](https://osv.dev) (opt-in)                      |
+| Category      | Examples                                                                                                                                                                                                                  |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Exfiltration  | Environment variables, credential files, messenger sessions, cloud metadata or secret stores **sent** over the network; CI token harvesting; GitHub API abuse with stolen tokens                                          |
+| Secrets & FS  | `~/.ssh`, cloud credentials, registry tokens, browser cookies and passwords, keychain, crypto wallets, Discord/Telegram/Slack/Signal sessions, **CI runner memory scraping**, secret-scanner abuse (TruffleHog, gitleaks) |
+| Exec          | Shell spawning in every language, reverse shells, **disk wipers** (`rm -rf /`, `dd of=/dev/sda`, `mkfs`), **worm self-publishing** (`npm publish` with stolen tokens)                                                     |
+| Dynamic code  | `eval` / `exec` on non-literal input, decode-and-execute, **download-and-execute** (`curl                                                                                                                                 | sh`, `exec(urlopen(...))`, `iex (iwr ...)`), PHP web shells, prompt injection aimed at AI agents |
+| Obfuscation   | Encoded payloads that get executed, javascript-obfuscator output, **invisible Unicode payloads** (GlassWorm), **Trojan Source** bidi characters                                                                           |
+| Install hooks | npm lifecycle scripts, `setup.py` code, executable `.pth` files, Rust `build.rs`, Composer plugins                                                                                                                        |
+| Network       | Webhook, paste and tunneling endpoints, DNS exfiltration, hardcoded IPs, **blockchain command-and-control**, cloud metadata endpoints, telemetry and error-reporting endpoints (info)                                     |
+| Persistence   | Shell profiles, crontab, LaunchAgents, systemd, Windows Run keys, **VS Code / Cursor settings, `CLAUDE.md` / `AGENTS.md` / MCP config, CI workflow files**                                                                |
+| Crypto mining | Mining pool URLs, miner binaries, crypto-wallet file access                                                                                                                                                               |
+| Reputation    | Typosquats for npm, PyPI, Go, Cargo, Composer and Maven (offline); optional: new, deprecated, yanked or unregistered packages, maintainer changes                                                                         |
+| Vulnerability | Known CVEs and malicious-package advisories from [OSV.dev](https://osv.dev) (opt-in)                                                                                                                                      |
+
+In total: **108 checks** (88 rules and 12 heuristics for code, plus 8 package-reputation signals), on top of the optional OSV.dev vulnerability lookups. They are tuned against real 2025–2026 supply-chain attacks such as Shai-Hulud, ChainDrop, GlassWorm, MALFEX and the Hades `.pth` campaign.
 
 Correlation keeps the noise down. A capability on its own, such as starting a child process, is _low_. A package that reads your credentials **and** posts them to a webhook is _critical_. Comment lines are ignored, so documentation and commented-out examples don't trigger rules.
 
@@ -228,6 +230,7 @@ otherpkg>=2     # depthreat-ignore[exec/python-shell, obfuscation/*]
 - [x] Project config, ignores, allowlists and policy gates
 - [x] Diagnostics, hovers, Quick Fixes, sidebar, status bar
 - [x] OSV.dev vulnerabilities, typosquats and registry reputation
+- [x] 2026 attack coverage: invisible Unicode, IDE/AI-agent/CI tampering, worm self-publishing, CI and cloud secret theft, messenger session theft, blockchain C2, disk wipers, download-and-execute
 - [ ] 0.1.0 pre-release on the Visual Studio Marketplace
 - [x] Go, Rust, PHP and Java
 - [ ] SARIF export
