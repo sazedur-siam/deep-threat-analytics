@@ -12,6 +12,18 @@ First release (non-pre-release) on the Visual Studio Marketplace.
 
 ### Added
 
+- **45 new detections** for 2025–2026 supply-chain attacks:
+  - Invisible Unicode payloads (GlassWorm) and Trojan Source bidirectional characters.
+  - Tampering with VS Code/Cursor settings, AI coding agent files (`CLAUDE.md`, `AGENTS.md`,
+    MCP config), and CI workflow files; prompt injection aimed at AI agents.
+  - Worm self-publishing (`npm publish`, `twine upload`, `cargo publish`, ...), critical when
+    combined with token theft, and GitHub API abuse with stolen tokens.
+  - CI runner memory scraping, cloud metadata credential theft, secret-store dumping,
+    secret-scanner abuse (TruffleHog, gitleaks) and CI token harvesting.
+  - Discord/Telegram/Slack/Signal session theft and exfiltration, blockchain command-and-control,
+    destructive disk-wiping commands, and download-and-execute loaders.
+  - Typosquat detection for Go, Cargo, Composer and Maven, and info-level telemetry and
+    error-reporting endpoint rules.
 - **Markdown report**: `DepThreat: Export Report (Markdown)` and the `depthreat.report.autoWrite`
   setting, which writes `.depthreat/report.md` after every scan.
 
