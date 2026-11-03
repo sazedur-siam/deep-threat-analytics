@@ -21,6 +21,8 @@ export interface DepThreatSettings {
   pythonInterpreterPath: string;
   /** Opt-in network lookups. Security-sensitive. */
   online: { osv: boolean; registryMetadata: boolean };
+  /** Write .depthreat/report.md after every scan. */
+  report: { autoWrite: boolean };
 }
 
 function deepFreeze<T>(value: T): Readonly<T> {
@@ -49,6 +51,7 @@ const defaults: DepThreatSettings = {
   rulesPaths: [],
   pythonInterpreterPath: '',
   online: { osv: false, registryMetadata: false },
+  report: { autoWrite: false },
 };
 
 /** Frozen defaults; readSettings always returns fresh, mutable copies. */
@@ -71,6 +74,7 @@ export const SETTING_KEYS = {
   pythonInterpreterPath: 'python.interpreterPath',
   'online.osv': 'online.osv.enabled',
   'online.registryMetadata': 'online.registryMetadata.enabled',
+  'report.autoWrite': 'report.autoWrite',
 } as const;
 
 export type SettingField = keyof typeof SETTING_KEYS;
@@ -228,6 +232,9 @@ export function readSettings(source: SettingsSource, trusted: boolean): DepThrea
         isBoolean,
         d.online.registryMetadata,
       ),
+    },
+    report: {
+      autoWrite: get(SETTING_KEYS['report.autoWrite'], isBoolean, d.report.autoWrite),
     },
   };
 }

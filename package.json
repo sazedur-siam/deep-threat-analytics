@@ -387,6 +387,12 @@
           "default": false,
           "order": 12,
           "markdownDescription": "**Off by default.** Check package age, deprecation, yanked releases and maintainer changes. When enabled, dependency **names** are sent to `registry.npmjs.org` and `pypi.org`. No source code, file paths or project names are sent."
+        },
+        "depthreat.report.autoWrite": {
+          "type": "boolean",
+          "default": false,
+          "order": 13,
+          "markdownDescription": "Write a Markdown report of every scan to `.depthreat/report.md` in the workspace (overwritten each time). You can also run **DepThreat: Export Report (Markdown)** at any time."
         }
       }
     }
