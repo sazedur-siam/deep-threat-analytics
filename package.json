@@ -2,7 +2,7 @@
   "name": "deep-threat-analytics",
   "displayName": "DepThreat Analytics",
   "description": "Scans the source code of your dependencies for behavior that can compromise your system or leak data, plus known CVEs and package reputation.",
-  "version": "0.2.0",
+  "version": "1.0.0",
   "publisher": "MdSazedurRahman",
   "license": "MIT",
   "repository": {
