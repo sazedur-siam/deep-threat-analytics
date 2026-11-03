@@ -40,3 +40,17 @@
       - regex: 'discord(app)?\.com/api/webhooks|api\.telegram\.org/bot|\bsendDocument\b|hooks\.slack\.com/services|webhook\.site|\.post\s*\(|\bmethod\s*[:=]\s*[''"`]POST[''"`]|\bhttps?\.request\s*\(|\bhttp\.Post(Form)?\(|\bCURLOPT_POST(FIELDS)?\b|setRequestMethod\(\s*"POST"\s*\)|\bnew\s+HttpPost\(|\.POST\(|\bcurl\b[^\n]*\s(-F|-d|--data(-binary)?|--form|-T|--upload-file)\s'
     scope: file
   message: '{package} collects messenger or game-client session data and sends it out in {file}'
+
+# Web3 libraries (@solana/web3.js, ethers, web3.js, web3.py) legitimately contain RPC hosts and
+# methods, so this only fires when the same file also turns data into running code.
+- id: network/blockchain-c2
+  title: Fetches code from a blockchain and runs it
+  category: network
+  severity: high
+  languages: [javascript, typescript, python]
+  match:
+    all:
+      - regex: 'api\.(mainnet-beta|devnet|testnet)\.solana\.com|\bgetSignaturesForAddress\b|MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr|Memo1UhkJRfHyvLMcVucJwxXeuD728EqVDDwQDxFMNo|bsc-dataseed\d*\.|\beth_call\b|\beth_getTransactionByHash\b|rpc\.ankr\.com|cloudflare-eth\.com|\.publicnode\.com|\.llamarpc\.com|polygon-rpc\.com|\.infura\.io|\.alchemy(api)?\.io|\bnew\s+(ethers\.)?(providers\.)?JsonRpcProvider\s*\(|\bnew\s+Web3\s*\('
+      - regex: '(^|[^.\w])(eval|exec)\s*\(\s*[^''"`)\s]|\bnew\s+Function\s*\(\s*[^''"`)\s]|\bvm\.(runInThisContext|runInNewContext|runInContext|compileFunction)\s*\(|\bnew\s+vm\.Script\s*\(|\bexecSync\s*\(\s*[^''"`)\s]'
+    scope: file
+  message: '{package} reads data from a blockchain RPC endpoint and executes code in {file}, a pattern used for blockchain command-and-control'
