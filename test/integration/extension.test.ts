@@ -66,7 +66,8 @@ suite('DepThreat Analytics', () => {
     const manifest = roots.find((n) => n.kind === 'manifest');
     assert.ok(manifest, 'no manifest node');
     const labels = manifest.children.map((c) => c.label);
-    assert.deepStrictEqual(labels, ['evil-env-stealer@1.0.0', 'evil-postinstall@2.1.0']);
+    // Worst first: evil-postinstall pipes a download into a shell (critical).
+    assert.deepStrictEqual(labels, ['evil-postinstall@2.1.0', 'evil-env-stealer@1.0.0']);
   });
 
   test('shows a hover on flagged dependencies', async () => {
